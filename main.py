@@ -48,6 +48,11 @@ def evaluate_gene(gene):
     return total
 
 
+def create_gene(length):
+    """遺伝子を生成する関数"""
+    return list(np.random.permutation(length))
+
+
 if __name__ == '__main__':
     pos_count = 32  # 巡回する地点の数
 
