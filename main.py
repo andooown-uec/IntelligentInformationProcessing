@@ -3,6 +3,10 @@
 import numpy as np
 from deap import base, creator, tools
 
+CROSSOVER_RATE = 0.5    # 交叉率
+MUTATION_RATE = 0.2     # 個体突然変異率
+GENERATION_COUNT = 100  # 世代数
+
 pos_list = []   # 巡回する地点のリスト
 pos = []        # 巡回する地点の座標
 pos_diffs = []  # 巡回する地点間の距離
@@ -92,4 +96,66 @@ if __name__ == '__main__':
     toolbox.register("mutate", mutate_gene, indpb=0.05)
     toolbox.register("select", tools.selTournament, tournsize=3)
 
+    # 世代を生成
+    pop = toolbox.population(n=300)
 
+    print("Start of evolution")
+
+    # 初期世代の各個体の適応度を計算
+    fitnesses = list(map(toolbox.evaluate, pop))
+    for ind, fit in zip(pop, fitnesses):
+        ind.fitness.values = fit
+
+    print("  Evaluated {0} individuals".format(len(pop)))
+
+    for g in range(GENERATION_COUNT):
+        print("-- Generation {0} --".format(g))
+
+        # 個体を選択し、そのクローンを作成
+        offspring = toolbox.select(pop, len(pop))
+        offspring = list(map(toolbox.clone, offspring))
+
+        # 交叉
+        for child1, child2 in zip(offspring[::2], offspring[1::2]):
+            if np.random.rand() < CROSSOVER_RATE:
+                toolbox.mate(child1, child2)
+                del child1.fitness.values
+                del child2.fitness.values
+
+        # 突然変異
+        for mutant in offspring:
+            if np.random.rand() < MUTATION_RATE:
+                toolbox.mutate(mutant)
+                del mutant.fitness.values
+
+
+        # 交叉や突然変異で適応度がリセットされた個体を抽出
+        invalid_ind = [ind for ind in offspring if not ind.fitness.valid]
+        # 適応度を再計算
+        fitnesses = map(toolbox.evaluate, invalid_ind)
+        for ind, fit in zip(invalid_ind, fitnesses):
+            ind.fitness.values = fit
+
+        print("  Evaluated {0} individuals".format(len(invalid_ind)))
+
+        # 世代を更新
+        pop[:] = offspring
+        # 適応度を取得
+        fits = [ind.fitness.values[0] for ind in pop]
+
+        length = len(pop)
+        mean = sum(fits) / length
+        sum2 = sum([x * x for x in fits])
+        std = abs(sum2 / length - mean ** 2) ** 0.5
+
+        print("  Min {0}".format(min(fits)))
+        print("  Max {0}".format(max(fits)))
+        print("  Avg {0}".format(mean))
+        print("  Std {0}".format(std))
+
+    print("-- End of (successful) evolution --")
+
+    # 最良の個体を取得
+    best_ind = tools.selBest(pop, 1)[0]
+    
+    print("Best individual is {0}, {1}".format(decode_gene(best_ind), best_ind.fitness.values))
