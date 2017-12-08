@@ -4,10 +4,7 @@ import numpy as np
 import random
 from deap import base, creator, tools
 import matplotlib.pyplot as plt
-
-CROSSOVER_RATE = 0.5    # 交叉率
-MUTATION_RATE = 0.2     # 個体突然変異率
-GENERATION_COUNT = 100  # 世代数
+import argparse
 
 pos_list = []   # 巡回する地点のリスト
 pos = []        # 巡回する地点の座標
@@ -83,21 +80,32 @@ def update_figure(line_plot):
 
 
 if __name__ == '__main__':
-    pos_count = 32  # 巡回する地点の数
-
-    # シード値を設定
-    np.random.seed(64)
-    random.seed(64)
+    # argparser
+    parser = argparse.ArgumentParser()
+    # 位置引数の設定
+    parser.add_argument('pos_cnt',   help='Nuber of positions',                  type=int)
+    parser.add_argument('gen_cnt',   help='Number of generations',               type=int)
+    parser.add_argument('pop_cnt',   help='Number of genes in each generations', type=int)
+    parser.add_argument('crossover', help='Rate of crossover (0 ~ 1)',           type=float)
+    parser.add_argument('mutation',  help='Rate of mutation (0 ~ 1)',            type=float)
+    # 引数をパース
+    args = parser.parse_args()
+    # 定数を設定
+    POSITIONS_COUNT = args.pos_cnt  # 巡回する地点の数
+    GENERATION_COUNT = args.gen_cnt # 計算する世代の数
+    GENES_COUNT = args.pop_cnt      # 一世代あたりの遺伝子の数
+    CROSSOVER_RATE = args.crossover # 交叉率
+    MUTATION_RATE = args.mutation   # 突然変異率
 
     # 巡回する地点のリストを作成
-    pos_list = list(range(pos_count))
+    pos_list = list(range(POSITIONS_COUNT))
     # 巡回する地点の座標を作成
-    pos = np.random.randint(-200, 201, size=(pos_count, 2))
+    pos = np.random.randint(-200, 201, size=(POSITIONS_COUNT, 2))
 
     # 座標軸ごとの各点の距離を計算
     xs, ys = [pos[:, i] for i in [0, 1]]
-    dx = xs - xs.reshape((pos_count, 1))
-    dy = ys - ys.reshape((pos_count, 1))
+    dx = xs - xs.reshape((POSITIONS_COUNT, 1))
+    dy = ys - ys.reshape((POSITIONS_COUNT, 1))
     # 各点ごとの距離を計算
     pos_diffs = np.sqrt(dx ** 2 + dy ** 2)
 
@@ -106,7 +114,7 @@ if __name__ == '__main__':
     creator.create("Individual", list, fitness=creator.FitnessMax)
     # toolbox の設定
     toolbox = base.Toolbox()
-    toolbox.register("create_gene", create_gene, pos_count)
+    toolbox.register("create_gene", create_gene, POSITIONS_COUNT)
     toolbox.register("individual", tools.initIterate, creator.Individual, toolbox.create_gene)
     toolbox.register("population", tools.initRepeat, list, toolbox.individual)
     toolbox.register("evaluate", evaluate_gene)
@@ -115,7 +123,7 @@ if __name__ == '__main__':
     toolbox.register("select", tools.selTournament, tournsize=3)
 
     # 世代を生成
-    pop = toolbox.population(n=300)
+    pop = toolbox.population(n=GENES_COUNT)
 
     print("Start of evolution")
 
