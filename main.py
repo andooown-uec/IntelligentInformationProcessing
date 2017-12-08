@@ -4,63 +4,32 @@ import numpy as np
 import random
 from deap import base, creator, tools
 import matplotlib.pyplot as plt
+import argparse
+from position_manager import PositionManager
+from gene_order_converter import GeneOrderConverter
 
-CROSSOVER_RATE = 0.5    # 交叉率
-MUTATION_RATE = 0.2     # 個体突然変異率
-GENERATION_COUNT = 100  # 世代数
-
-pos_list = []   # 巡回する地点のリスト
-pos = []        # 巡回する地点の座標
-pos_diffs = []  # 巡回する地点間の距離
+positions = None    # 巡回する位置を管理するオブジェクト
+converter = None    # 遺伝子と巡回する順番のコンバータ
 current_distance = 0    # 現在の移動距離
-current_order = None    # 現在の経路
-line_plot = None    # 巡回ルート表示用のオブジェクト
-
-
-def encode_gene(order):
-    """各地点を巡回する順番を遺伝子に変換する関数"""
-    # 巡回する地点のリストをコピー
-    cp_list = pos_list.copy()
-    # 遺伝子を生成
-    gene = []
-    for o in order:
-        # 位置を検索
-        index = cp_list.index(o)
-        # 遺伝子に追加し、地点のリストから削除
-        gene.append(index)
-        cp_list.pop(index)
-
-    return gene
-
-
-def decode_gene(gene):
-    """遺伝子を各地点を巡回する順番に変換する関数"""
-    # 巡回する地点のリストをコピー
-    cp_list = pos_list.copy()
-    # 遺伝子を生成
-    order = []
-    for g in gene:
-        # 遺伝子から位置を検索し、地点のリストに追加
-        order.append(cp_list.pop(g))
-
-    return order
+current_gene = None     # 現在の遺伝子
+order_plot = None       # 巡回ルート表示用のオブジェクト
+distance_plot = None    # 距離表示用のオブジェクト
+distance_history = []   # 距離の履歴
 
 
 def evaluate_gene(gene):
     """遺伝子の評価関数。移動距離の合計を返す"""
     # 遺伝子を巡回順番のリストに変換
-    order = decode_gene(gene)
+    order = converter.convert_to_order(gene)
     # 合計の移動距離を計算
-    total = 0   # 移動距離
-    for i in range(len(order) - 1):
-        total += pos_diffs[order[i], order[i + 1]]
+    total = positions.calc_moving_distance(order)
 
     return total,
 
 
 def create_gene(length):
     """遺伝子を生成する関数"""
-    return encode_gene(list(np.random.permutation(length)))
+    return converter.convert_to_gene(list(np.random.permutation(length)))
 
 
 def mutate_gene(gene, indpb):
@@ -73,80 +42,127 @@ def mutate_gene(gene, indpb):
     return gene,
 
 
-def update_figure(line_plot):
+def print_info_line(gen, min, max, ave, std, is_csv=False):
+    """世代の情報を 1 行で表示する関数"""
+    if is_csv:
+        print(gen, min, max, ave, std, sep=',')
+    else:
+        print(
+            str(gen).ljust(5),
+            '{:.4f}'.format(min).rjust(12),
+            '{:.4f}'.format(max).rjust(12),
+            '{:.4f}'.format(ave).rjust(12),
+            '{:.4f}'.format(std).rjust(12))
+
+
+def update_figure(order_plot, distance_plot):
     """グラフを更新する関数"""
+    # 遺伝子を巡回順に変換
+    order = converter.convert_to_order(current_gene)
     # 経路を更新
-    line_plot.set_xdata([pos[o, 0] for o in current_order])
-    line_plot.set_ydata([pos[o, 1] for o in current_order])
+    pos = positions.positions[order]
+    order_plot.set_xdata(pos[:, 0])
+    order_plot.set_ydata(pos[:, 1])
+    # 距離を更新
+    distance_plot.set_xdata(range(len(distance_history)))
+    distance_plot.set_ydata(distance_history)
 
 
 if __name__ == '__main__':
-    pos_count = 32  # 巡回する地点の数
+    # argparser
+    parser = argparse.ArgumentParser()
+    # 位置引数の設定
+    parser.add_argument('pos_cnt',   help='Nuber of positions',                  type=int)
+    parser.add_argument('gen_cnt',   help='Number of generations',               type=int)
+    parser.add_argument('pop_cnt',   help='Number of genes in each generations', type=int)
+    parser.add_argument('crossover', help='Rate of crossover (0 ~ 1)',           type=float)
+    parser.add_argument('gene_mutation', help='Rate of gene mutation (0 ~ 1)',   type=float)
+    parser.add_argument('base_mutation', help='Rate of base mutation (0 ~ 1)',   type=float)
+    # オプショナル引数を設定
+    parser.add_argument('--seed', help='Seed value', type=int)
+    parser.add_argument('--csv',  help='Output csv', action='store_true')
+    # 引数をパース
+    args = parser.parse_args()
+    # 定数を設定
+    POSITIONS_COUNT = args.pos_cnt  # 巡回する地点の数
+    GENERATION_COUNT = args.gen_cnt # 計算する世代の数
+    GENES_COUNT = args.pop_cnt      # 一世代あたりの遺伝子の数
+    CROSSOVER_RATE = args.crossover # 交叉率
+    GENE_MUTATION_RATE = args.gene_mutation # 突然変異率
+    BASE_MUTATION_RATE = args.base_mutation # 符号ごとの突然変異率
 
-    # シード値を設定
-    np.random.seed(64)
-    random.seed(64)
+    # 乱数のシード値を設定
+    if args.seed:
+        random.seed(args.seed)
+        np.random.seed(args.seed)
 
-    # 巡回する地点のリストを作成
-    pos_list = list(range(pos_count))
-    # 巡回する地点の座標を作成
-    pos = np.random.randint(-200, 201, size=(pos_count, 2))
-
-    # 座標軸ごとの各点の距離を計算
-    xs, ys = [pos[:, i] for i in [0, 1]]
-    dx = xs - xs.reshape((pos_count, 1))
-    dy = ys - ys.reshape((pos_count, 1))
-    # 各点ごとの距離を計算
-    pos_diffs = np.sqrt(dx ** 2 + dy ** 2)
+    # 巡回する地点を管理するオブジェクトを作成
+    positions = PositionManager(POSITIONS_COUNT)
+    # コンバータを作成
+    converter = GeneOrderConverter(POSITIONS_COUNT)
 
     # creator の設定
     creator.create("FitnessMax", base.Fitness, weights=(-1.0,))
-    creator.create("Individual", list, fitness=creator.FitnessMax)
+    creator.create("Gene", list, fitness=creator.FitnessMax)
     # toolbox の設定
     toolbox = base.Toolbox()
-    toolbox.register("create_gene", create_gene, pos_count)
-    toolbox.register("individual", tools.initIterate, creator.Individual, toolbox.create_gene)
-    toolbox.register("population", tools.initRepeat, list, toolbox.individual)
+    toolbox.register("create_gene", create_gene, POSITIONS_COUNT)
+    toolbox.register("gene", tools.initIterate, creator.Gene, toolbox.create_gene)
+    toolbox.register("population", tools.initRepeat, list, toolbox.gene)
     toolbox.register("evaluate", evaluate_gene)
     toolbox.register("mate", tools.cxTwoPoint)
-    toolbox.register("mutate", mutate_gene, indpb=0.05)
+    toolbox.register("mutate", mutate_gene, indpb=BASE_MUTATION_RATE)
     toolbox.register("select", tools.selTournament, tournsize=3)
 
     # 世代を生成
-    pop = toolbox.population(n=300)
-
-    print("Start of evolution")
+    pop = toolbox.population(n=GENES_COUNT)
 
     # 初期世代の各個体の適応度を計算
     fitnesses = list(map(toolbox.evaluate, pop))
-    for ind, fit in zip(pop, fitnesses):
-        ind.fitness.values = fit
-    # 現在の最短経路を更新
-    current_order = decode_gene(tools.selBest(pop, 1)[0])
+    for gene, fit in zip(pop, fitnesses):
+        gene.fitness.values = fit
+    # 現在の距離と最良の遺伝子を更新
+    current_gene = tools.selBest(pop, 1)[0]
+    current_distance = positions.calc_moving_distance(converter.convert_to_order(current_gene))
 
-    print("  Evaluated {0} individuals".format(len(pop)))
+    # 情報を表示
+    if args.csv:
+        print('Gen', 'Min', 'Max', 'Ave', 'Std', sep=',')
+    else:
+        print('Positions: {}'.format(POSITIONS_COUNT))
+        print('Generations: {}'.format(GENERATION_COUNT))
+        print('Genes: {} / generation'.format(GENES_COUNT))
+        print('Crossover rate: {}'.format(CROSSOVER_RATE))
+        print('Mutation rate: {}'.format(GENE_MUTATION_RATE), end='\n\n')
+        print()
+        print('{0:<5} {1:<12} {2:<12} {3:<12} {4:<12}'.format('Gen', 'Min', 'Max', 'Ave', 'Std'))
+        print('=' * 58)
 
     # インタラクティブモードを有効化
     plt.ion()
     # グラフを作成
-    fig = plt.figure(figsize=(4, 4))
-    ax = fig.add_subplot(1, 1, 1)
-    # 経路をプロット
-    line_plot, = ax.plot(pos[:, 0], pos[:, 1], color='blue', linewidth=3, zorder=1)
-    update_figure(line_plot)
+    fig = plt.figure(figsize=(4, 9))
+    ax1 = fig.add_subplot(2, 1, 1)
+    ax2 = fig.add_subplot(2, 1, 2)
+    # 経路用のグラフを作成
+    order_plot, = ax1.plot(positions.positions[:, 0], positions.positions[:, 1], color='blue', linewidth=3, zorder=1)
     # 各地点をプロット
-    ax.scatter(pos[:, 0], pos[:, 1], color='cyan', zorder=2)
+    ax1.scatter(positions.positions[:, 0], positions.positions[:, 1], color='cyan', zorder=2)
     # グラフの範囲を指定
-    ax.set_xlim(-250, 250)
-    ax.set_ylim(-250, 250)
+    ax1.set_xlim(-250, 250)
+    ax1.set_ylim(-250, 250)
+    # 進捗表示用のグラフを作成
+    distance_plot, = ax2.plot([0], [current_distance], color='blue')
+    # グラフの範囲を指定
+    ax2.set_xlim(0, GENERATION_COUNT)
+    ax2.set_ylim(0, current_distance * 1.2)
     # グラフを表示
+    update_figure(order_plot, distance_plot)
     plt.draw()
     plt.pause(0.01)
 
     # 学習
     for g in range(GENERATION_COUNT):
-        print("-- Generation {0} --".format(g))
-
         # 個体を選択し、そのクローンを作成
         offspring = toolbox.select(pop, len(pop))
         offspring = list(map(toolbox.clone, offspring))
@@ -160,48 +176,42 @@ if __name__ == '__main__':
 
         # 突然変異
         for mutant in offspring:
-            if np.random.rand() < MUTATION_RATE:
+            if np.random.rand() < GENE_MUTATION_RATE:
                 toolbox.mutate(mutant)
                 del mutant.fitness.values
 
 
         # 交叉や突然変異で適応度がリセットされた個体を抽出
-        invalid_ind = [ind for ind in offspring if not ind.fitness.valid]
+        invalid_gene = [gene for gene in offspring if not gene.fitness.valid]
         # 適応度を再計算
-        fitnesses = map(toolbox.evaluate, invalid_ind)
-        for ind, fit in zip(invalid_ind, fitnesses):
+        fitnesses = map(toolbox.evaluate, invalid_gene)
+        for ind, fit in zip(invalid_gene, fitnesses):
             ind.fitness.values = fit
-
-        print("  Evaluated {0} individuals".format(len(invalid_ind)))
 
         # 世代を更新
         pop[:] = offspring
         # 適応度を取得
-        fits = [ind.fitness.values[0] for ind in pop]
+        fits = [gene.fitness.values[0] for gene in pop]
 
-        dist = min(fits)
+        # 現在の距離と最良の遺伝子を更新
+        current_distance = min(fits)
+        current_gene = tools.selBest(pop, 1)[0]
+        # 距離の履歴を更新
+        distance_history.append(current_distance)
+
+        # 情報を表示
         length = len(pop)
         mean = sum(fits) / length
         sum2 = sum([x * x for x in fits])
         std = abs(sum2 / length - mean ** 2) ** 0.5
-
-        print("  Min {0}".format(dist))
-        print("  Max {0}".format(max(fits)))
-        print("  Avg {0}".format(mean))
-        print("  Std {0}".format(std))
-
-        # 現在の距離と経路を更新
-        current_distance = dist
-        current_order = decode_gene(tools.selBest(pop, 1)[0])
+        print_info_line(g, current_distance, max(fits), mean, std, args.csv)
         # グラフを更新
-        update_figure(line_plot)
+        update_figure(order_plot, distance_plot)
         plt.draw()
         plt.pause(0.01)
 
-    print("-- End of (successful) evolution --")
-
-    # 最良の個体を取得
-    best_ind = tools.selBest(pop, 1)[0]
-    
-    print("Best order: {0}".format(decode_gene(best_ind)))
-    print("Moving distance: {0}".format(best_ind.fitness.values[0]))
+    # 結果を表示
+    if not args.csv:
+        print()
+        print("Best order:\n  {}".format(converter.convert_to_order(current_gene)))
+        print("Moving distance: {:.4f}".format(current_gene.fitness.values[0]))
