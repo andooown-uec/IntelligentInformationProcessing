@@ -40,6 +40,19 @@ def mutate_gene(gene, indpb):
     return gene,
 
 
+def print_info_line(gen, min, max, ave, std, is_csv=False):
+    """世代の情報を 1 行で表示する関数"""
+    if is_csv:
+        print(gen, min, max, ave, std, sep=',')
+    else:
+        print(
+            str(gen).ljust(5),
+            '{:.4f}'.format(min).rjust(12),
+            '{:.4f}'.format(max).rjust(12),
+            '{:.4f}'.format(ave).rjust(12),
+            '{:.4f}'.format(std).rjust(12))
+
+
 def update_figure(line_plot):
     """グラフを更新する関数"""
     # 遺伝子を巡回順に変換
@@ -61,6 +74,7 @@ if __name__ == '__main__':
     parser.add_argument('mutation',  help='Rate of mutation (0 ~ 1)',            type=float)
     # オプショナル引数を設定
     parser.add_argument('--seed', help='Seed value', type=int)
+    parser.add_argument('--csv',  help='Output csv', action='store_true')
     # 引数をパース
     args = parser.parse_args()
     # 定数を設定
@@ -96,16 +110,26 @@ if __name__ == '__main__':
     # 世代を生成
     pop = toolbox.population(n=GENES_COUNT)
 
-    print("Start of evolution")
-
     # 初期世代の各個体の適応度を計算
     fitnesses = list(map(toolbox.evaluate, pop))
     for gene, fit in zip(pop, fitnesses):
         gene.fitness.values = fit
-    # 現在の最短経路を更新
+    # 現在の距離と最良の遺伝子を更新
     current_gene = tools.selBest(pop, 1)[0]
+    current_distance = positions.calc_moving_distance(converter.convert_to_order(current_gene))
 
-    print("  Evaluated {0} individuals".format(len(pop)))
+    # 情報を表示
+    if args.csv:
+        print('Gen', 'Min', 'Max', 'Ave', 'Std', sep=',')
+    else:
+        print('Positions: {}'.format(POSITIONS_COUNT))
+        print('Generations: {}'.format(GENERATION_COUNT))
+        print('Genes: {} / generation'.format(GENES_COUNT))
+        print('Crossover rate: {}'.format(CROSSOVER_RATE))
+        print('Mutation rate: {}'.format(MUTATION_RATE), end='\n\n')
+        print()
+        print('{0:<5} {1:<12} {2:<12} {3:<12} {4:<12}'.format('Gen', 'Min', 'Max', 'Ave', 'Std'))
+        print('=' * 58)
 
     # インタラクティブモードを有効化
     plt.ion()
@@ -126,8 +150,6 @@ if __name__ == '__main__':
 
     # 学習
     for g in range(GENERATION_COUNT):
-        print("-- Generation {0} --".format(g))
-
         # 個体を選択し、そのクローンを作成
         offspring = toolbox.select(pop, len(pop))
         offspring = list(map(toolbox.clone, offspring))
@@ -153,33 +175,28 @@ if __name__ == '__main__':
         for ind, fit in zip(invalid_gene, fitnesses):
             ind.fitness.values = fit
 
-        print("  Evaluated {0} individuals".format(len(invalid_gene)))
-
         # 世代を更新
         pop[:] = offspring
         # 適応度を取得
         fits = [gene.fitness.values[0] for gene in pop]
 
-        dist = min(fits)
+        # 現在の距離と最良の遺伝子を更新
+        current_distance = min(fits)
+        current_gene = tools.selBest(pop, 1)[0]
+
+        # 情報を表示
         length = len(pop)
         mean = sum(fits) / length
         sum2 = sum([x * x for x in fits])
         std = abs(sum2 / length - mean ** 2) ** 0.5
-
-        print("  Min {0}".format(dist))
-        print("  Max {0}".format(max(fits)))
-        print("  Avg {0}".format(mean))
-        print("  Std {0}".format(std))
-
-        # 現在の距離と最良の遺伝子を更新
-        current_distance = dist
-        current_gene = tools.selBest(pop, 1)[0]
+        print_info_line(g, current_distance, max(fits), mean, std, args.csv)
         # グラフを更新
         update_figure(line_plot)
         plt.draw()
         plt.pause(0.01)
 
-    print("-- End of (successful) evolution --")
-
-    print("Best order: {0}".format(converter.convert_to_order(current_gene)))
-    print("Moving distance: {0}".format(current_gene.fitness.values[0]))
+    # 結果を表示
+    if not args.csv:
+        print()
+        print("Best order:\n  {}".format(converter.convert_to_order(current_gene)))
+        print("Moving distance: {:.4f}".format(current_gene.fitness.values[0]))
