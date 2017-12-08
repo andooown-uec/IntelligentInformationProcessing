@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
+from deap import base, creator, tools
 
 pos_list = []   # 巡回する地点のリスト
 pos = []        # 巡回する地点の座標
@@ -77,3 +78,18 @@ if __name__ == '__main__':
     dy = ys - ys.reshape((pos_count, 1))
     # 各点ごとの距離を計算
     pos_diffs = np.sqrt(dx ** 2 + dy ** 2)
+
+    # creator の設定
+    creator.create("FitnessMax", base.Fitness, weights=(-1.0,))
+    creator.create("Individual", list, fitness=creator.FitnessMax)
+    # toolbox の設定
+    toolbox = base.Toolbox()
+    toolbox.register("create_gene", create_gene, pos_count)
+    toolbox.register("individual", tools.initIterate, creator.Individual, toolbox.create_gene)
+    toolbox.register("population", tools.initRepeat, list, toolbox.individual)
+    toolbox.register("evaluate", evaluate_gene)
+    toolbox.register("mate", tools.cxTwoPoint)
+    toolbox.register("mutate", mutate_gene, indpb=0.05)
+    toolbox.register("select", tools.selTournament, tournsize=3)
+
+
