@@ -13,7 +13,7 @@ pos_list = []   # 巡回する地点のリスト
 pos = []        # 巡回する地点の座標
 pos_diffs = []  # 巡回する地点間の距離
 current_distance = 0    # 現在の移動距離
-current_order = None    # 現在の経路
+current_gene = None     # 現在の遺伝子
 line_plot = None    # 巡回ルート表示用のオブジェクト
 
 
@@ -75,9 +75,11 @@ def mutate_gene(gene, indpb):
 
 def update_figure(line_plot):
     """グラフを更新する関数"""
+    # 遺伝子を巡回順に変換
+    order = decode_gene(current_gene)
     # 経路を更新
-    line_plot.set_xdata([pos[o, 0] for o in current_order])
-    line_plot.set_ydata([pos[o, 1] for o in current_order])
+    line_plot.set_xdata([pos[o, 0] for o in order])
+    line_plot.set_ydata([pos[o, 1] for o in order])
 
 
 if __name__ == '__main__':
@@ -122,7 +124,7 @@ if __name__ == '__main__':
     for ind, fit in zip(pop, fitnesses):
         ind.fitness.values = fit
     # 現在の最短経路を更新
-    current_order = decode_gene(tools.selBest(pop, 1)[0])
+    current_gene = tools.selBest(pop, 1)[0]
 
     print("  Evaluated {0} individuals".format(len(pop)))
 
@@ -192,7 +194,7 @@ if __name__ == '__main__':
 
         # 現在の距離と経路を更新
         current_distance = dist
-        current_order = decode_gene(tools.selBest(pop, 1)[0])
+        current_gene = tools.selBest(pop, 1)[0]
         # グラフを更新
         update_figure(line_plot)
         plt.draw()
