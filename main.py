@@ -51,7 +51,7 @@ def evaluate_gene(gene):
 
 def create_gene(length):
     """遺伝子を生成する関数"""
-    return list(np.random.permutation(length))
+    return encode_gene(list(np.random.permutation(length)))
 
 
 def mutate_gene(gene, indpb):
