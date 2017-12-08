@@ -13,6 +13,7 @@ converter = None    # 遺伝子と巡回する順番のコンバータ
 current_distance = 0    # 現在の移動距離
 current_gene = None     # 現在の遺伝子
 line_plot = None    # 巡回ルート表示用のオブジェクト
+distance_history = []   # 距離の履歴
 
 
 def evaluate_gene(gene):
@@ -185,6 +186,8 @@ if __name__ == '__main__':
         # 現在の距離と最良の遺伝子を更新
         current_distance = min(fits)
         current_gene = tools.selBest(pop, 1)[0]
+        # 距離の履歴を更新
+        distance_history.append(current_distance)
 
         # 情報を表示
         length = len(pop)
