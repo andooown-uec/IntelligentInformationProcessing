@@ -46,7 +46,7 @@ def evaluate_gene(gene):
     for i in range(len(order) - 1):
         total += pos_diffs[order[i], order[i + 1]]
 
-    return total
+    return total,
 
 
 def create_gene(length):
