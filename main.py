@@ -111,12 +111,12 @@ if __name__ == '__main__':
 
     # creator の設定
     creator.create("FitnessMax", base.Fitness, weights=(-1.0,))
-    creator.create("Individual", list, fitness=creator.FitnessMax)
+    creator.create("Gene", list, fitness=creator.FitnessMax)
     # toolbox の設定
     toolbox = base.Toolbox()
     toolbox.register("create_gene", create_gene, POSITIONS_COUNT)
-    toolbox.register("individual", tools.initIterate, creator.Individual, toolbox.create_gene)
-    toolbox.register("population", tools.initRepeat, list, toolbox.individual)
+    toolbox.register("gene", tools.initIterate, creator.Gene, toolbox.create_gene)
+    toolbox.register("population", tools.initRepeat, list, toolbox.gene)
     toolbox.register("evaluate", evaluate_gene)
     toolbox.register("mate", tools.cxTwoPoint)
     toolbox.register("mutate", mutate_gene, indpb=0.05)
@@ -129,8 +129,8 @@ if __name__ == '__main__':
 
     # 初期世代の各個体の適応度を計算
     fitnesses = list(map(toolbox.evaluate, pop))
-    for ind, fit in zip(pop, fitnesses):
-        ind.fitness.values = fit
+    for gene, fit in zip(pop, fitnesses):
+        gene.fitness.values = fit
     # 現在の最短経路を更新
     current_gene = tools.selBest(pop, 1)[0]
 
@@ -176,18 +176,18 @@ if __name__ == '__main__':
 
 
         # 交叉や突然変異で適応度がリセットされた個体を抽出
-        invalid_ind = [ind for ind in offspring if not ind.fitness.valid]
+        invalid_gene = [gene for gene in offspring if not gene.fitness.valid]
         # 適応度を再計算
-        fitnesses = map(toolbox.evaluate, invalid_ind)
-        for ind, fit in zip(invalid_ind, fitnesses):
+        fitnesses = map(toolbox.evaluate, invalid_gene)
+        for ind, fit in zip(invalid_gene, fitnesses):
             ind.fitness.values = fit
 
-        print("  Evaluated {0} individuals".format(len(invalid_ind)))
+        print("  Evaluated {0} individuals".format(len(invalid_gene)))
 
         # 世代を更新
         pop[:] = offspring
         # 適応度を取得
-        fits = [ind.fitness.values[0] for ind in pop]
+        fits = [gene.fitness.values[0] for gene in pop]
 
         dist = min(fits)
         length = len(pop)
@@ -200,7 +200,7 @@ if __name__ == '__main__':
         print("  Avg {0}".format(mean))
         print("  Std {0}".format(std))
 
-        # 現在の距離と経路を更新
+        # 現在の距離と最良の遺伝子を更新
         current_distance = dist
         current_gene = tools.selBest(pop, 1)[0]
         # グラフを更新
@@ -210,8 +210,5 @@ if __name__ == '__main__':
 
     print("-- End of (successful) evolution --")
 
-    # 最良の個体を取得
-    best_ind = tools.selBest(pop, 1)[0]
-    
-    print("Best order: {0}".format(decode_gene(best_ind)))
-    print("Moving distance: {0}".format(best_ind.fitness.values[0]))
+    print("Best order: {0}".format(decode_gene(current_gene)))
+    print("Moving distance: {0}".format(current_gene.fitness.values[0]))
