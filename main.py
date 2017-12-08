@@ -5,27 +5,14 @@ import random
 from deap import base, creator, tools
 import matplotlib.pyplot as plt
 import argparse
+from position_manager import PositionManager
 from gene_order_converter import GeneOrderConverter
 
-pos = []        # 巡回する地点の座標
-pos_diffs = []  # 巡回する地点間の距離
+positions = None    # 巡回する位置を管理するオブジェクト
 converter = None    # 遺伝子と巡回する順番のコンバータ
 current_distance = 0    # 現在の移動距離
 current_gene = None     # 現在の遺伝子
 line_plot = None    # 巡回ルート表示用のオブジェクト
-
-
-def init_positions(count):
-    """巡回する地点を初期化し、距離を計算する関数"""
-    global pos_list, pos, pos_diffs
-    # 巡回する地点の座標を作成
-    pos = np.random.randint(-200, 201, size=(count, 2))
-    # 座標軸ごとの各点の距離を計算
-    xs, ys = [pos[:, i] for i in [0, 1]]
-    dx = xs - xs.reshape((count, 1))
-    dy = ys - ys.reshape((count, 1))
-    # 各点ごとの距離を計算
-    pos_diffs = np.sqrt(dx ** 2 + dy ** 2)
 
 
 def evaluate_gene(gene):
@@ -33,9 +20,7 @@ def evaluate_gene(gene):
     # 遺伝子を巡回順番のリストに変換
     order = converter.convert_to_order(gene)
     # 合計の移動距離を計算
-    total = 0   # 移動距離
-    for i in range(len(order) - 1):
-        total += pos_diffs[order[i], order[i + 1]]
+    total = positions.calc_moving_distance(order)
 
     return total,
 
@@ -60,8 +45,9 @@ def update_figure(line_plot):
     # 遺伝子を巡回順に変換
     order = converter.convert_to_order(current_gene)
     # 経路を更新
-    line_plot.set_xdata([pos[o, 0] for o in order])
-    line_plot.set_ydata([pos[o, 1] for o in order])
+    pos = positions.positions[order]
+    line_plot.set_xdata(pos[:, 0])
+    line_plot.set_ydata(pos[:, 1])
 
 
 if __name__ == '__main__':
@@ -92,8 +78,8 @@ if __name__ == '__main__':
         random.seed(64)
         np.random.seed(64)
 
-    # 巡回する地点を初期化
-    init_positions(POSITIONS_COUNT)
+    # 巡回する地点を管理するオブジェクトを作成
+    positions = PositionManager(POSITIONS_COUNT)
     # コンバータを作成
     converter = GeneOrderConverter(POSITIONS_COUNT)
 
@@ -130,10 +116,10 @@ if __name__ == '__main__':
     fig = plt.figure(figsize=(4, 4))
     ax = fig.add_subplot(1, 1, 1)
     # 経路をプロット
-    line_plot, = ax.plot(pos[:, 0], pos[:, 1], color='blue', linewidth=3, zorder=1)
+    line_plot, = ax.plot(positions.positions[:, 0], positions.positions[:, 1], color='blue', linewidth=3, zorder=1)
     update_figure(line_plot)
     # 各地点をプロット
-    ax.scatter(pos[:, 0], pos[:, 1], color='cyan', zorder=2)
+    ax.scatter(positions.positions[:, 0], positions.positions[:, 1], color='cyan', zorder=2)
     # グラフの範囲を指定
     ax.set_xlim(-250, 250)
     ax.set_ylim(-250, 250)
