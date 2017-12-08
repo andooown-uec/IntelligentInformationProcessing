@@ -12,7 +12,9 @@ positions = None    # 巡回する位置を管理するオブジェクト
 converter = None    # 遺伝子と巡回する順番のコンバータ
 current_distance = 0    # 現在の移動距離
 current_gene = None     # 現在の遺伝子
-line_plot = None    # 巡回ルート表示用のオブジェクト
+order_plot = None       # 巡回ルート表示用のオブジェクト
+distance_plot = None    # 距離表示用のオブジェクト
+distance_history = []   # 距離の履歴
 
 
 def evaluate_gene(gene):
@@ -53,14 +55,17 @@ def print_info_line(gen, min, max, ave, std, is_csv=False):
             '{:.4f}'.format(std).rjust(12))
 
 
-def update_figure(line_plot):
+def update_figure(order_plot, distance_plot):
     """グラフを更新する関数"""
     # 遺伝子を巡回順に変換
     order = converter.convert_to_order(current_gene)
     # 経路を更新
     pos = positions.positions[order]
-    line_plot.set_xdata(pos[:, 0])
-    line_plot.set_ydata(pos[:, 1])
+    order_plot.set_xdata(pos[:, 0])
+    order_plot.set_ydata(pos[:, 1])
+    # 距離を更新
+    distance_plot.set_xdata(range(len(distance_history)))
+    distance_plot.set_ydata(distance_history)
 
 
 if __name__ == '__main__':
@@ -136,17 +141,23 @@ if __name__ == '__main__':
     # インタラクティブモードを有効化
     plt.ion()
     # グラフを作成
-    fig = plt.figure(figsize=(4, 4))
-    ax = fig.add_subplot(1, 1, 1)
-    # 経路をプロット
-    line_plot, = ax.plot(positions.positions[:, 0], positions.positions[:, 1], color='blue', linewidth=3, zorder=1)
-    update_figure(line_plot)
+    fig = plt.figure(figsize=(4, 9))
+    ax1 = fig.add_subplot(2, 1, 1)
+    ax2 = fig.add_subplot(2, 1, 2)
+    # 経路用のグラフを作成
+    order_plot, = ax1.plot(positions.positions[:, 0], positions.positions[:, 1], color='blue', linewidth=3, zorder=1)
     # 各地点をプロット
-    ax.scatter(positions.positions[:, 0], positions.positions[:, 1], color='cyan', zorder=2)
+    ax1.scatter(positions.positions[:, 0], positions.positions[:, 1], color='cyan', zorder=2)
     # グラフの範囲を指定
-    ax.set_xlim(-250, 250)
-    ax.set_ylim(-250, 250)
+    ax1.set_xlim(-250, 250)
+    ax1.set_ylim(-250, 250)
+    # 進捗表示用のグラフを作成
+    distance_plot, = ax2.plot([0], [current_distance], color='blue')
+    # グラフの範囲を指定
+    ax2.set_xlim(0, GENERATION_COUNT)
+    ax2.set_ylim(0, current_distance * 1.2)
     # グラフを表示
+    update_figure(order_plot, distance_plot)
     plt.draw()
     plt.pause(0.01)
 
@@ -185,6 +196,8 @@ if __name__ == '__main__':
         # 現在の距離と最良の遺伝子を更新
         current_distance = min(fits)
         current_gene = tools.selBest(pop, 1)[0]
+        # 距離の履歴を更新
+        distance_history.append(current_distance)
 
         # 情報を表示
         length = len(pop)
@@ -193,7 +206,7 @@ if __name__ == '__main__':
         std = abs(sum2 / length - mean ** 2) ** 0.5
         print_info_line(g, current_distance, max(fits), mean, std, args.csv)
         # グラフを更新
-        update_figure(line_plot)
+        update_figure(order_plot, distance_plot)
         plt.draw()
         plt.pause(0.01)
 
