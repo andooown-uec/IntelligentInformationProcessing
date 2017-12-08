@@ -53,6 +53,16 @@ def create_gene(length):
     return list(np.random.permutation(length))
 
 
+def mutate_gene(gene, indpb):
+    """遺伝子の突然変異を行う関数"""
+    for i in range(len(gene)):
+        if np.random.rand() < indpb:
+            gene[i] = np.random.randint(i + 1)
+
+    return gene,
+
+
+
 if __name__ == '__main__':
     pos_count = 32  # 巡回する地点の数
 
