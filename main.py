@@ -14,6 +14,22 @@ current_gene = None     # 現在の遺伝子
 line_plot = None    # 巡回ルート表示用のオブジェクト
 
 
+def init_positions(count):
+    """巡回する地点を初期化し、距離を計算する関数"""
+    global pos_list, pos, pos_diffs
+    # 巡回する地点のリストを作成
+    pos_list = list(range(count))
+    # 巡回する地点の座標を作成
+    pos = np.random.randint(-200, 201, size=(count, 2))
+
+    # 座標軸ごとの各点の距離を計算
+    xs, ys = [pos[:, i] for i in [0, 1]]
+    dx = xs - xs.reshape((count, 1))
+    dy = ys - ys.reshape((count, 1))
+    # 各点ごとの距離を計算
+    pos_diffs = np.sqrt(dx ** 2 + dy ** 2)
+
+
 def encode_gene(order):
     """各地点を巡回する順番を遺伝子に変換する関数"""
     # 巡回する地点のリストをコピー
@@ -107,17 +123,8 @@ if __name__ == '__main__':
         random.seed(64)
         np.random.seed(64)
 
-    # 巡回する地点のリストを作成
-    pos_list = list(range(POSITIONS_COUNT))
-    # 巡回する地点の座標を作成
-    pos = np.random.randint(-200, 201, size=(POSITIONS_COUNT, 2))
-
-    # 座標軸ごとの各点の距離を計算
-    xs, ys = [pos[:, i] for i in [0, 1]]
-    dx = xs - xs.reshape((POSITIONS_COUNT, 1))
-    dy = ys - ys.reshape((POSITIONS_COUNT, 1))
-    # 各点ごとの距離を計算
-    pos_diffs = np.sqrt(dx ** 2 + dy ** 2)
+    # 巡回する地点を初期化
+    init_positions(POSITIONS_COUNT)
 
     # creator の設定
     creator.create("FitnessMax", base.Fitness, weights=(-1.0,))
