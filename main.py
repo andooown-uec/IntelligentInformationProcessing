@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
+import random
 from deap import base, creator, tools
+import matplotlib.pyplot as plt
 
 CROSSOVER_RATE = 0.5    # 交叉率
 MUTATION_RATE = 0.2     # 個体突然変異率
@@ -10,6 +12,9 @@ GENERATION_COUNT = 100  # 世代数
 pos_list = []   # 巡回する地点のリスト
 pos = []        # 巡回する地点の座標
 pos_diffs = []  # 巡回する地点間の距離
+current_distance = 0    # 現在の移動距離
+current_order = None    # 現在の経路
+line_plot = None    # 巡回ルート表示用のオブジェクト
 
 
 def encode_gene(order):
@@ -68,8 +73,19 @@ def mutate_gene(gene, indpb):
     return gene,
 
 
+def update_figure(line_plot):
+    """グラフを更新する関数"""
+    # 経路を更新
+    line_plot.set_xdata([pos[o, 0] for o in current_order])
+    line_plot.set_ydata([pos[o, 1] for o in current_order])
+
+
 if __name__ == '__main__':
     pos_count = 32  # 巡回する地点の数
+
+    # シード値を設定
+    np.random.seed(64)
+    random.seed(64)
 
     # 巡回する地点のリストを作成
     pos_list = list(range(pos_count))
@@ -105,9 +121,29 @@ if __name__ == '__main__':
     fitnesses = list(map(toolbox.evaluate, pop))
     for ind, fit in zip(pop, fitnesses):
         ind.fitness.values = fit
+    # 現在の最短経路を更新
+    current_order = decode_gene(tools.selBest(pop, 1)[0])
 
     print("  Evaluated {0} individuals".format(len(pop)))
 
+    # インタラクティブモードを有効化
+    plt.ion()
+    # グラフを作成
+    fig = plt.figure(figsize=(4, 4))
+    ax = fig.add_subplot(1, 1, 1)
+    # 経路をプロット
+    line_plot, = ax.plot(pos[:, 0], pos[:, 1], color='blue', linewidth=3, zorder=1)
+    update_figure(line_plot)
+    # 各地点をプロット
+    ax.scatter(pos[:, 0], pos[:, 1], color='cyan', zorder=2)
+    # グラフの範囲を指定
+    ax.set_xlim(-250, 250)
+    ax.set_ylim(-250, 250)
+    # グラフを表示
+    plt.draw()
+    plt.pause(0.01)
+
+    # 学習
     for g in range(GENERATION_COUNT):
         print("-- Generation {0} --".format(g))
 
@@ -143,15 +179,24 @@ if __name__ == '__main__':
         # 適応度を取得
         fits = [ind.fitness.values[0] for ind in pop]
 
+        dist = min(fits)
         length = len(pop)
         mean = sum(fits) / length
         sum2 = sum([x * x for x in fits])
         std = abs(sum2 / length - mean ** 2) ** 0.5
 
-        print("  Min {0}".format(min(fits)))
+        print("  Min {0}".format(dist))
         print("  Max {0}".format(max(fits)))
         print("  Avg {0}".format(mean))
         print("  Std {0}".format(std))
+
+        # 現在の距離と経路を更新
+        current_distance = dist
+        current_order = decode_gene(tools.selBest(pop, 1)[0])
+        # グラフを更新
+        update_figure(line_plot)
+        plt.draw()
+        plt.pause(0.01)
 
     print("-- End of (successful) evolution --")
 
