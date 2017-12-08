@@ -74,9 +74,6 @@ if __name__ == '__main__':
     if args.seed:
         random.seed(args.seed)
         np.random.seed(args.seed)
-    else:
-        random.seed(64)
-        np.random.seed(64)
 
     # 巡回する地点を管理するオブジェクトを作成
     positions = PositionManager(POSITIONS_COUNT)
