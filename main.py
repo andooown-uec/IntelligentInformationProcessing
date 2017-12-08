@@ -5,10 +5,11 @@ import random
 from deap import base, creator, tools
 import matplotlib.pyplot as plt
 import argparse
+from gene_order_converter import GeneOrderConverter
 
-pos_list = []   # 巡回する地点のリスト
 pos = []        # 巡回する地点の座標
 pos_diffs = []  # 巡回する地点間の距離
+converter = None    # 遺伝子と巡回する順番のコンバータ
 current_distance = 0    # 現在の移動距離
 current_gene = None     # 現在の遺伝子
 line_plot = None    # 巡回ルート表示用のオブジェクト
@@ -17,11 +18,8 @@ line_plot = None    # 巡回ルート表示用のオブジェクト
 def init_positions(count):
     """巡回する地点を初期化し、距離を計算する関数"""
     global pos_list, pos, pos_diffs
-    # 巡回する地点のリストを作成
-    pos_list = list(range(count))
     # 巡回する地点の座標を作成
     pos = np.random.randint(-200, 201, size=(count, 2))
-
     # 座標軸ごとの各点の距離を計算
     xs, ys = [pos[:, i] for i in [0, 1]]
     dx = xs - xs.reshape((count, 1))
@@ -30,39 +28,10 @@ def init_positions(count):
     pos_diffs = np.sqrt(dx ** 2 + dy ** 2)
 
 
-def encode_gene(order):
-    """各地点を巡回する順番を遺伝子に変換する関数"""
-    # 巡回する地点のリストをコピー
-    cp_list = pos_list.copy()
-    # 遺伝子を生成
-    gene = []
-    for o in order:
-        # 位置を検索
-        index = cp_list.index(o)
-        # 遺伝子に追加し、地点のリストから削除
-        gene.append(index)
-        cp_list.pop(index)
-
-    return gene
-
-
-def decode_gene(gene):
-    """遺伝子を各地点を巡回する順番に変換する関数"""
-    # 巡回する地点のリストをコピー
-    cp_list = pos_list.copy()
-    # 遺伝子を生成
-    order = []
-    for g in gene:
-        # 遺伝子から位置を検索し、地点のリストに追加
-        order.append(cp_list.pop(g))
-
-    return order
-
-
 def evaluate_gene(gene):
     """遺伝子の評価関数。移動距離の合計を返す"""
     # 遺伝子を巡回順番のリストに変換
-    order = decode_gene(gene)
+    order = converter.convert_to_order(gene)
     # 合計の移動距離を計算
     total = 0   # 移動距離
     for i in range(len(order) - 1):
@@ -73,7 +42,7 @@ def evaluate_gene(gene):
 
 def create_gene(length):
     """遺伝子を生成する関数"""
-    return encode_gene(list(np.random.permutation(length)))
+    return converter.convert_to_gene(list(np.random.permutation(length)))
 
 
 def mutate_gene(gene, indpb):
@@ -89,7 +58,7 @@ def mutate_gene(gene, indpb):
 def update_figure(line_plot):
     """グラフを更新する関数"""
     # 遺伝子を巡回順に変換
-    order = decode_gene(current_gene)
+    order = converter.convert_to_order(current_gene)
     # 経路を更新
     line_plot.set_xdata([pos[o, 0] for o in order])
     line_plot.set_ydata([pos[o, 1] for o in order])
@@ -125,6 +94,8 @@ if __name__ == '__main__':
 
     # 巡回する地点を初期化
     init_positions(POSITIONS_COUNT)
+    # コンバータを作成
+    converter = GeneOrderConverter(POSITIONS_COUNT)
 
     # creator の設定
     creator.create("FitnessMax", base.Fitness, weights=(-1.0,))
@@ -227,5 +198,5 @@ if __name__ == '__main__':
 
     print("-- End of (successful) evolution --")
 
-    print("Best order: {0}".format(decode_gene(current_gene)))
+    print("Best order: {0}".format(converter.convert_to_order(current_gene)))
     print("Moving distance: {0}".format(current_gene.fitness.values[0]))
