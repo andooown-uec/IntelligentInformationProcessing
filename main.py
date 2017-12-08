@@ -158,4 +158,5 @@ if __name__ == '__main__':
     # 最良の個体を取得
     best_ind = tools.selBest(pop, 1)[0]
     
-    print("Best individual is {0}, {1}".format(decode_gene(best_ind), best_ind.fitness.values))
+    print("Best order: {0}".format(decode_gene(best_ind)))
+    print("Moving distance: {0}".format(best_ind.fitness.values[0]))
