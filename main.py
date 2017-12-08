@@ -4,6 +4,7 @@ import numpy as np
 
 pos_list = []   # 巡回する地点のリスト
 pos = []        # 巡回する地点の座標
+pos_diffs = []  # 巡回する地点間の距離
 
 
 def encode_gene(order):
@@ -35,6 +36,18 @@ def decode_gene(gene):
     return order
 
 
+def evaluate_gene(gene):
+    """遺伝子の評価関数。移動距離の合計を返す"""
+    # 遺伝子を巡回順番のリストに変換
+    order = decode_gene(gene)
+    # 合計の移動距離を計算
+    total = 0   # 移動距離
+    for i in range(len(order) - 1):
+        total += pos_diffs[order[i], order[i + 1]]
+
+    return total
+
+
 if __name__ == '__main__':
     pos_count = 32  # 巡回する地点の数
 
@@ -48,4 +61,4 @@ if __name__ == '__main__':
     dx = xs - xs.reshape((pos_count, 1))
     dy = ys - ys.reshape((pos_count, 1))
     # 各点ごとの距離を計算
-    diffs = np.sqrt(dx ** 2 + dy ** 2)
+    pos_diffs = np.sqrt(dx ** 2 + dy ** 2)
