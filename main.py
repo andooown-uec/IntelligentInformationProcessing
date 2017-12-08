@@ -56,12 +56,12 @@ def create_gene(length):
 
 def mutate_gene(gene, indpb):
     """遺伝子の突然変異を行う関数"""
-    for i in range(len(gene)):
+    size = len(gene)
+    for i in range(size):
         if np.random.rand() < indpb:
-            gene[i] = np.random.randint(i + 1)
+            gene[i] = np.random.randint(size - i)
 
     return gene,
-
 
 
 if __name__ == '__main__':
