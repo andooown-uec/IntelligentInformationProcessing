@@ -71,7 +71,8 @@ if __name__ == '__main__':
     parser.add_argument('gen_cnt',   help='Number of generations',               type=int)
     parser.add_argument('pop_cnt',   help='Number of genes in each generations', type=int)
     parser.add_argument('crossover', help='Rate of crossover (0 ~ 1)',           type=float)
-    parser.add_argument('mutation',  help='Rate of mutation (0 ~ 1)',            type=float)
+    parser.add_argument('gene_mutation', help='Rate of gene mutation (0 ~ 1)',   type=float)
+    parser.add_argument('base_mutation', help='Rate of base mutation (0 ~ 1)',   type=float)
     # オプショナル引数を設定
     parser.add_argument('--seed', help='Seed value', type=int)
     parser.add_argument('--csv',  help='Output csv', action='store_true')
@@ -82,7 +83,8 @@ if __name__ == '__main__':
     GENERATION_COUNT = args.gen_cnt # 計算する世代の数
     GENES_COUNT = args.pop_cnt      # 一世代あたりの遺伝子の数
     CROSSOVER_RATE = args.crossover # 交叉率
-    MUTATION_RATE = args.mutation   # 突然変異率
+    GENE_MUTATION_RATE = args.gene_mutation # 突然変異率
+    BASE_MUTATION_RATE = args.base_mutation # 符号ごとの突然変異率
 
     # 乱数のシード値を設定
     if args.seed:
@@ -104,7 +106,7 @@ if __name__ == '__main__':
     toolbox.register("population", tools.initRepeat, list, toolbox.gene)
     toolbox.register("evaluate", evaluate_gene)
     toolbox.register("mate", tools.cxTwoPoint)
-    toolbox.register("mutate", mutate_gene, indpb=0.05)
+    toolbox.register("mutate", mutate_gene, indpb=BASE_MUTATION_RATE)
     toolbox.register("select", tools.selTournament, tournsize=3)
 
     # 世代を生成
@@ -126,7 +128,7 @@ if __name__ == '__main__':
         print('Generations: {}'.format(GENERATION_COUNT))
         print('Genes: {} / generation'.format(GENES_COUNT))
         print('Crossover rate: {}'.format(CROSSOVER_RATE))
-        print('Mutation rate: {}'.format(MUTATION_RATE), end='\n\n')
+        print('Mutation rate: {}'.format(GENE_MUTATION_RATE), end='\n\n')
         print()
         print('{0:<5} {1:<12} {2:<12} {3:<12} {4:<12}'.format('Gen', 'Min', 'Max', 'Ave', 'Std'))
         print('=' * 58)
@@ -163,7 +165,7 @@ if __name__ == '__main__':
 
         # 突然変異
         for mutant in offspring:
-            if np.random.rand() < MUTATION_RATE:
+            if np.random.rand() < GENE_MUTATION_RATE:
                 toolbox.mutate(mutant)
                 del mutant.fitness.values
 
