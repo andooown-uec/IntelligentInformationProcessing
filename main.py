@@ -60,7 +60,7 @@ def update_figure(order_plot, distance_plot):
     # 遺伝子を巡回順に変換
     order = converter.convert_to_order(current_gene)
     # 経路を更新
-    pos = positions.positions[order]
+    pos = positions.positions[order + [order[0]]]
     order_plot.set_xdata(pos[:, 0])
     order_plot.set_ydata(pos[:, 1])
     # 距離を更新
