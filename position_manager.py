@@ -19,7 +19,7 @@ class PositionManager:
 
     def calc_moving_distance(self, order):
         """巡回順から移動距離を計算する関数"""
-        total = 0
+        total = self.distances[order[0], order[-1]]
         for i, j in zip(order[:-1], order[1:]):
             total += self.distances[order[i], order[j]]
 
