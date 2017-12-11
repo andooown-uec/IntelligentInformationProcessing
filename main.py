@@ -141,7 +141,7 @@ if __name__ == '__main__':
     # インタラクティブモードを有効化
     plt.ion()
     # グラフを作成
-    fig = plt.figure(figsize=(4, 9))
+    fig = plt.figure(figsize=(3, 5))
     ax1 = fig.add_subplot(2, 1, 1)
     ax2 = fig.add_subplot(2, 1, 2)
     # 経路用のグラフを作成
