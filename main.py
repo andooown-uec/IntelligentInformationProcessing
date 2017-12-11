@@ -6,40 +6,40 @@ from deap import base, creator, tools
 import matplotlib.pyplot as plt
 import argparse
 from position_manager import PositionManager
-from gene_order_converter import GeneOrderConverter
+from gene_order_converter import IndividualOrderConverter
 
 positions = None    # 巡回する位置を管理するオブジェクト
 converter = None    # 遺伝子と巡回する順番のコンバータ
-current_distance = 0    # 現在の移動距離
-current_gene = None     # 現在の遺伝子
+current_distance = 0        # 現在の移動距離
+current_individual = None   # 現在の遺伝子
 order_plot = None       # 巡回ルート表示用のオブジェクト
 distance_plot = None    # 距離表示用のオブジェクト
 distance_history = []   # 距離の履歴
 
 
-def evaluate_gene(gene):
+def evaluate_individual(ind):
     """遺伝子の評価関数。移動距離の合計を返す"""
     # 遺伝子を巡回順番のリストに変換
-    order = converter.convert_to_order(gene)
+    order = converter.convert_to_order(ind)
     # 合計の移動距離を計算
     total = positions.calc_moving_distance(order)
 
     return total,
 
 
-def create_gene(length):
+def create_individual(length):
     """遺伝子を生成する関数"""
-    return converter.convert_to_gene(list(np.random.permutation(length)))
+    return converter.convert_to_individual(list(np.random.permutation(length)))
 
 
-def mutate_gene(gene, indpb):
+def mutate_individual(ind, indpb):
     """遺伝子の突然変異を行う関数"""
-    size = len(gene)
+    size = len(ind)
     for i in range(size):
         if np.random.rand() < indpb:
-            gene[i] = np.random.randint(size - i)
+            ind[i] = np.random.randint(size - i)
 
-    return gene,
+    return ind,
 
 
 def print_info_line(gen, min, max, ave, std, is_csv=False):
@@ -58,7 +58,7 @@ def print_info_line(gen, min, max, ave, std, is_csv=False):
 def update_figure(order_plot, distance_plot):
     """グラフを更新する関数"""
     # 遺伝子を巡回順に変換
-    order = converter.convert_to_order(current_gene)
+    order = converter.convert_to_order(current_individual)
     # 経路を更新
     pos = positions.positions[order + [order[0]]]
     order_plot.set_xdata(pos[:, 0])
@@ -76,8 +76,8 @@ if __name__ == '__main__':
     parser.add_argument('gen_cnt',   help='Number of generations',               type=int)
     parser.add_argument('pop_cnt',   help='Number of genes in each generations', type=int)
     parser.add_argument('crossover', help='Rate of crossover (0 ~ 1)',           type=float)
+    parser.add_argument('mutation',  help='Rate of individual mutation (0 ~ 1)', type=float)
     parser.add_argument('gene_mutation', help='Rate of gene mutation (0 ~ 1)',   type=float)
-    parser.add_argument('base_mutation', help='Rate of base mutation (0 ~ 1)',   type=float)
     # オプショナル引数を設定
     parser.add_argument('--seed', help='Seed value', type=int)
     parser.add_argument('--csv',  help='Output csv', action='store_true')
@@ -86,10 +86,10 @@ if __name__ == '__main__':
     # 定数を設定
     POSITIONS_COUNT = args.pos_cnt  # 巡回する地点の数
     GENERATION_COUNT = args.gen_cnt # 計算する世代の数
-    GENES_COUNT = args.pop_cnt      # 一世代あたりの遺伝子の数
+    INDIVIDUAL_COUNT = args.pop_cnt # 一世代あたりの遺伝子の数
     CROSSOVER_RATE = args.crossover # 交叉率
-    GENE_MUTATION_RATE = args.gene_mutation # 突然変異率
-    BASE_MUTATION_RATE = args.base_mutation # 符号ごとの突然変異率
+    MUTATION_RATE = args.mutation   # 突然変異率
+    BASE_MUTATION_RATE = args.gene_mutation # 符号ごとの突然変異率
 
     # 乱数のシード値を設定
     if args.seed:
@@ -99,31 +99,31 @@ if __name__ == '__main__':
     # 巡回する地点を管理するオブジェクトを作成
     positions = PositionManager(POSITIONS_COUNT)
     # コンバータを作成
-    converter = GeneOrderConverter(POSITIONS_COUNT)
+    converter = IndividualOrderConverter(POSITIONS_COUNT)
 
     # creator の設定
     creator.create("FitnessMax", base.Fitness, weights=(-1.0,))
-    creator.create("Gene", list, fitness=creator.FitnessMax)
+    creator.create("Individual", list, fitness=creator.FitnessMax)
     # toolbox の設定
     toolbox = base.Toolbox()
-    toolbox.register("create_gene", create_gene, POSITIONS_COUNT)
-    toolbox.register("gene", tools.initIterate, creator.Gene, toolbox.create_gene)
-    toolbox.register("population", tools.initRepeat, list, toolbox.gene)
-    toolbox.register("evaluate", evaluate_gene)
+    toolbox.register("create_individual", create_individual, POSITIONS_COUNT)
+    toolbox.register("individual", tools.initIterate, creator.Individual, toolbox.create_individual)
+    toolbox.register("population", tools.initRepeat, list, toolbox.individual)
+    toolbox.register("evaluate", evaluate_individual)
     toolbox.register("mate", tools.cxTwoPoint)
-    toolbox.register("mutate", mutate_gene, indpb=BASE_MUTATION_RATE)
+    toolbox.register("mutate", mutate_individual, indpb=BASE_MUTATION_RATE)
     toolbox.register("select", tools.selTournament, tournsize=3)
 
     # 世代を生成
-    pop = toolbox.population(n=GENES_COUNT)
+    pop = toolbox.population(n=INDIVIDUAL_COUNT)
 
     # 初期世代の各個体の適応度を計算
     fitnesses = list(map(toolbox.evaluate, pop))
-    for gene, fit in zip(pop, fitnesses):
-        gene.fitness.values = fit
+    for ind, fit in zip(pop, fitnesses):
+        ind.fitness.values = fit
     # 現在の距離と最良の遺伝子を更新
-    current_gene = tools.selBest(pop, 1)[0]
-    current_distance = positions.calc_moving_distance(converter.convert_to_order(current_gene))
+    current_individual = tools.selBest(pop, 1)[0]
+    current_distance = positions.calc_moving_distance(converter.convert_to_order(current_individual))
 
     # 情報を表示
     if args.csv:
@@ -131,9 +131,9 @@ if __name__ == '__main__':
     else:
         print('Positions: {}'.format(POSITIONS_COUNT))
         print('Generations: {}'.format(GENERATION_COUNT))
-        print('Genes: {} / generation'.format(GENES_COUNT))
+        print('Individual: {} / generation'.format(INDIVIDUAL_COUNT))
         print('Crossover rate: {}'.format(CROSSOVER_RATE))
-        print('Mutation rate: {}'.format(GENE_MUTATION_RATE), end='\n\n')
+        print('Mutation rate: {}'.format(MUTATION_RATE), end='\n\n')
         print()
         print('{0:<5} {1:<12} {2:<12} {3:<12} {4:<12}'.format('Gen', 'Min', 'Max', 'Ave', 'Std'))
         print('=' * 58)
@@ -176,26 +176,26 @@ if __name__ == '__main__':
 
         # 突然変異
         for mutant in offspring:
-            if np.random.rand() < GENE_MUTATION_RATE:
+            if np.random.rand() < MUTATION_RATE:
                 toolbox.mutate(mutant)
                 del mutant.fitness.values
 
 
         # 交叉や突然変異で適応度がリセットされた個体を抽出
-        invalid_gene = [gene for gene in offspring if not gene.fitness.valid]
+        invalid_ind = [ind for ind in offspring if not ind.fitness.valid]
         # 適応度を再計算
-        fitnesses = map(toolbox.evaluate, invalid_gene)
-        for ind, fit in zip(invalid_gene, fitnesses):
+        fitnesses = map(toolbox.evaluate, invalid_ind)
+        for ind, fit in zip(invalid_ind, fitnesses):
             ind.fitness.values = fit
 
         # 世代を更新
         pop[:] = offspring
         # 適応度を取得
-        fits = [gene.fitness.values[0] for gene in pop]
+        fits = [ind.fitness.values[0] for ind in pop]
 
         # 現在の距離と最良の遺伝子を更新
         current_distance = min(fits)
-        current_gene = tools.selBest(pop, 1)[0]
+        current_individual = tools.selBest(pop, 1)[0]
         # 距離の履歴を更新
         distance_history.append(current_distance)
 
@@ -213,5 +213,5 @@ if __name__ == '__main__':
     # 結果を表示
     if not args.csv:
         print()
-        print("Best order:\n  {}".format(converter.convert_to_order(current_gene)))
-        print("Moving distance: {:.4f}".format(current_gene.fitness.values[0]))
+        print("Best order:\n  {}".format(converter.convert_to_order(current_individual)))
+        print("Moving distance: {:.4f}".format(current_individual.fitness.values[0]))
