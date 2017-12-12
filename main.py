@@ -5,7 +5,6 @@ import random
 from deap import base, creator, tools
 import matplotlib.pyplot as plt
 import argparse
-from position_manager import PositionManager
 
 positions = None    # 巡回する地点の座標
 distances = None    # 地点間の距離
