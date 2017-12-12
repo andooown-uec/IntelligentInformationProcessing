@@ -6,7 +6,6 @@ from deap import base, creator, tools
 import matplotlib.pyplot as plt
 import argparse
 from position_manager import PositionManager
-from gene_order_converter import IndividualOrderConverter
 
 positions = None    # 巡回する位置を管理するオブジェクト
 converter = None    # 遺伝子と巡回する順番のコンバータ
@@ -94,8 +93,6 @@ if __name__ == '__main__':
 
     # 巡回する地点を管理するオブジェクトを作成
     positions = PositionManager(POSITIONS_COUNT)
-    # コンバータを作成
-    converter = IndividualOrderConverter(POSITIONS_COUNT)
 
     # creator の設定
     creator.create("FitnessMax", base.Fitness, weights=(-1.0,))
