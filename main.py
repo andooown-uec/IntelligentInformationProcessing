@@ -7,7 +7,8 @@ import matplotlib.pyplot as plt
 import argparse
 from position_manager import PositionManager
 
-positions = None    # 巡回する位置を管理するオブジェクト
+positions = None    # 巡回する地点の座標
+distances = None    # 地点間の距離
 converter = None    # 遺伝子と巡回する順番のコンバータ
 current_distance = 0        # 現在の移動距離
 current_individual = None   # 現在の遺伝子
@@ -91,8 +92,14 @@ if __name__ == '__main__':
         random.seed(args.seed)
         np.random.seed(args.seed)
 
-    # 巡回する地点を管理するオブジェクトを作成
-    positions = PositionManager(POSITIONS_COUNT)
+    # 巡回する地点の座標を作成
+    positions = np.random.randint(-200, 201, size=(POSITIONS_COUNT, 2))
+    # 座標軸ごとの各点の距離を計算
+    xs, ys = [positions[:, i] for i in [0, 1]]
+    dx = xs - xs.reshape((POSITIONS_COUNT, 1))
+    dy = ys - ys.reshape((POSITIONS_COUNT, 1))
+    # 各点ごとの距離を計算
+    distances = np.sqrt(dx ** 2 + dy ** 2)
 
     # creator の設定
     creator.create("FitnessMax", base.Fitness, weights=(-1.0,))
