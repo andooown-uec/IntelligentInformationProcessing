@@ -57,7 +57,7 @@ def print_info_line(gen, min, max, ave, std, is_csv=False):
 def update_figure(order_plot, distance_plot):
     """グラフを更新する関数"""
     # 経路を更新
-    pos = positions.positions[current_individual + [current_individual[0]]]
+    pos = positions[current_individual + [current_individual[0]]]
     order_plot.set_xdata(pos[:, 0])
     order_plot.set_ydata(pos[:, 1])
     # 距離を更新
