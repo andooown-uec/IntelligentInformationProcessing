@@ -146,9 +146,9 @@ if __name__ == '__main__':
     ax1 = fig.add_subplot(2, 1, 1)
     ax2 = fig.add_subplot(2, 1, 2)
     # 経路用のグラフを作成
-    order_plot, = ax1.plot(positions.positions[:, 0], positions.positions[:, 1], color='blue', linewidth=3, zorder=1)
+    order_plot, = ax1.plot(positions[:, 0], positions[:, 1], color='blue', linewidth=3, zorder=1)
     # 各地点をプロット
-    ax1.scatter(positions.positions[:, 0], positions.positions[:, 1], color='cyan', zorder=2)
+    ax1.scatter(positions[:, 0], positions[:, 1], color='cyan', zorder=2)
     # グラフの範囲を指定
     ax1.set_xlim(-250, 250)
     ax1.set_ylim(-250, 250)
