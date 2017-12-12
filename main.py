@@ -103,8 +103,8 @@ if __name__ == '__main__':
     toolbox.register("individual", tools.initIterate, creator.Individual, toolbox.create_individual)
     toolbox.register("population", tools.initRepeat, list, toolbox.individual)
     toolbox.register("evaluate", evaluate_individual)
-    toolbox.register("mate", tools.cxTwoPoint)
-    toolbox.register("mutate", mutate_individual, indpb=BASE_MUTATION_RATE)
+    toolbox.register("mate", tools.cxPartialyMatched)
+    toolbox.register("mutate", tools.mutShuffleIndexes, indpb=BASE_MUTATION_RATE)
     toolbox.register("select", tools.selTournament, tournsize=3)
 
     # 世代を生成
