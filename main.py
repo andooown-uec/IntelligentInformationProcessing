@@ -19,17 +19,15 @@ distance_history = []   # 距離の履歴
 
 def evaluate_individual(ind):
     """遺伝子の評価関数。移動距離の合計を返す"""
-    # 遺伝子を巡回順番のリストに変換
-    order = converter.convert_to_order(ind)
     # 合計の移動距離を計算
-    total = positions.calc_moving_distance(order)
+    total = positions.calc_moving_distance(ind)
 
     return total,
 
 
 def create_individual(length):
     """遺伝子を生成する関数"""
-    return converter.convert_to_individual(list(np.random.permutation(length)))
+    return list(np.random.permutation(length))
 
 
 def mutate_individual(ind, indpb):
@@ -57,10 +55,8 @@ def print_info_line(gen, min, max, ave, std, is_csv=False):
 
 def update_figure(order_plot, distance_plot):
     """グラフを更新する関数"""
-    # 遺伝子を巡回順に変換
-    order = converter.convert_to_order(current_individual)
     # 経路を更新
-    pos = positions.positions[order + [order[0]]]
+    pos = positions.positions[current_individual + [current_individual[0]]]
     order_plot.set_xdata(pos[:, 0])
     order_plot.set_ydata(pos[:, 1])
     # 距離を更新
@@ -123,7 +119,7 @@ if __name__ == '__main__':
         ind.fitness.values = fit
     # 現在の距離と最良の遺伝子を更新
     current_individual = tools.selBest(pop, 1)[0]
-    current_distance = positions.calc_moving_distance(converter.convert_to_order(current_individual))
+    current_distance = evaluate_individual(current_individual)[0]
 
     # 情報を表示
     if args.csv:
@@ -213,5 +209,5 @@ if __name__ == '__main__':
     # 結果を表示
     if not args.csv:
         print()
-        print("Best order:\n  {}".format(converter.convert_to_order(current_individual)))
+        print("Best order:\n  {}".format(current_individual))
         print("Moving distance: {:.4f}".format(current_individual.fitness.values[0]))
