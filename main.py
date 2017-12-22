@@ -5,6 +5,7 @@ import random
 from deap import base, creator, tools
 import matplotlib.pyplot as plt
 import argparse
+import crossover
 
 positions = None    # 巡回する地点の座標
 distances = None    # 地点間の距離
@@ -110,7 +111,7 @@ if __name__ == '__main__':
     toolbox.register("individual", tools.initIterate, creator.Individual, toolbox.create_individual)
     toolbox.register("population", tools.initRepeat, list, toolbox.individual)
     toolbox.register("evaluate", evaluate_individual)
-    toolbox.register("mate", tools.cxPartialyMatched)
+    toolbox.register("mate", crossover.order_crossover)
     toolbox.register("mutate", tools.mutShuffleIndexes, indpb=BASE_MUTATION_RATE)
     toolbox.register("select", tools.selTournament, tournsize=3)
 
