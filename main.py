@@ -5,9 +5,10 @@ import random
 from deap import base, creator, tools
 import matplotlib.pyplot as plt
 import argparse
-from position_manager import PositionManager
+import crossover
 
-positions = None    # 巡回する位置を管理するオブジェクト
+positions = None    # 巡回する地点の座標
+distances = None    # 地点間の距離
 converter = None    # 遺伝子と巡回する順番のコンバータ
 current_distance = 0        # 現在の移動距離
 current_individual = None   # 現在の遺伝子
@@ -18,8 +19,9 @@ distance_history = []   # 距離の履歴
 
 def evaluate_individual(ind):
     """遺伝子の評価関数。移動距離の合計を返す"""
-    # 合計の移動距離を計算
-    total = positions.calc_moving_distance(ind)
+    total = distances[ind[0], ind[-1]]
+    for i, j in zip(ind[:-1], ind[1:]):
+        total += distances[ind[i], ind[j]]
 
     return total,
 
@@ -55,7 +57,7 @@ def print_info_line(gen, min, max, ave, std, is_csv=False):
 def update_figure(order_plot, distance_plot):
     """グラフを更新する関数"""
     # 経路を更新
-    pos = positions.positions[current_individual + [current_individual[0]]]
+    pos = positions[current_individual + [current_individual[0]]]
     order_plot.set_xdata(pos[:, 0])
     order_plot.set_ydata(pos[:, 1])
     # 距離を更新
@@ -91,8 +93,14 @@ if __name__ == '__main__':
         random.seed(args.seed)
         np.random.seed(args.seed)
 
-    # 巡回する地点を管理するオブジェクトを作成
-    positions = PositionManager(POSITIONS_COUNT)
+    # 巡回する地点の座標を作成
+    positions = np.random.randint(-200, 201, size=(POSITIONS_COUNT, 2))
+    # 座標軸ごとの各点の距離を計算
+    xs, ys = [positions[:, i] for i in [0, 1]]
+    dx = xs - xs.reshape((POSITIONS_COUNT, 1))
+    dy = ys - ys.reshape((POSITIONS_COUNT, 1))
+    # 各点ごとの距離を計算
+    distances = np.sqrt(dx ** 2 + dy ** 2)
 
     # creator の設定
     creator.create("FitnessMax", base.Fitness, weights=(-1.0,))
@@ -103,7 +111,7 @@ if __name__ == '__main__':
     toolbox.register("individual", tools.initIterate, creator.Individual, toolbox.create_individual)
     toolbox.register("population", tools.initRepeat, list, toolbox.individual)
     toolbox.register("evaluate", evaluate_individual)
-    toolbox.register("mate", tools.cxPartialyMatched)
+    toolbox.register("mate", crossover.order_crossover)
     toolbox.register("mutate", tools.mutShuffleIndexes, indpb=BASE_MUTATION_RATE)
     toolbox.register("select", tools.selTournament, tournsize=3)
 
@@ -138,9 +146,9 @@ if __name__ == '__main__':
     ax1 = fig.add_subplot(2, 1, 1)
     ax2 = fig.add_subplot(2, 1, 2)
     # 経路用のグラフを作成
-    order_plot, = ax1.plot(positions.positions[:, 0], positions.positions[:, 1], color='blue', linewidth=3, zorder=1)
+    order_plot, = ax1.plot(positions[:, 0], positions[:, 1], color='blue', linewidth=3, zorder=1)
     # 各地点をプロット
-    ax1.scatter(positions.positions[:, 0], positions.positions[:, 1], color='cyan', zorder=2)
+    ax1.scatter(positions[:, 0], positions[:, 1], color='cyan', zorder=2)
     # グラフの範囲を指定
     ax1.set_xlim(-250, 250)
     ax1.set_ylim(-250, 250)
