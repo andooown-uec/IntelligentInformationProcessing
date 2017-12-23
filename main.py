@@ -125,9 +125,9 @@ if __name__ == '__main__':
     toolbox.register("individual", tools.initIterate, creator.Individual, toolbox.create_individual)
     toolbox.register("population", tools.initRepeat, list, toolbox.individual)
     toolbox.register("evaluate", evaluate_individual)
-    toolbox.register("mate", crossover.ordered_crossover)
+    toolbox.register("mate", crossover.cycle_crossover)
     toolbox.register("mutate", mutation.inversion_mutation)
-    toolbox.register("select", tools.selTournament, tournsize=3)
+    toolbox.register("select", select_individuals, elite_rate=ELITE_RATE)
 
     # 世代を生成
     pop = toolbox.population(n=INDIVIDUAL_COUNT)
