@@ -38,7 +38,7 @@ def select_individuals(individuals, n, elite_rate):
     # エリート選択を行う
     chosen = individuals[:int(n * elite_rate)]   # 選ばれた個体
     rest = individuals[len(chosen):]            # 残りの個体
-    # 残りの個体からルーレット選択を行う
+    # 残りの個体からランキング選択を行う
     sum_inds = sum(map(lambda x: x + 1, range(len(rest))))
     for _ in range(n - len(chosen)):
         sel = np.random.rand() * sum_inds
