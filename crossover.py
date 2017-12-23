@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
+import itertools
 
 
 def cycle_crossover(ind1, ind2):
@@ -45,5 +46,36 @@ def ordered_crossover(ind1, ind2):
     # 残りを継承
     ind1[:p1], ind2[:p1] = old2[size - p2:], old1[size - p2:]
     ind1[p2:], ind2[p2:] = old2[:size - p2], old1[:size - p2]
+
+    return ind1, ind2
+
+
+def partially_mapped_crossover(ind1, ind2):
+    """部分写像交叉"""
+    size = len(ind1)  # 個体の大きさ
+    old1, old2 = ind1.copy(), ind2.copy()  # 親
+    # 子孫を初期化
+    ind1[:], ind2[:] = [-1] * size, [-1] * size
+    # 切断点を決定する
+    p1 = np.random.randint(0, size - 1)
+    p2 = np.random.randint(p1 + 1, size)
+    # 切断点間は他方の親のコピー
+    ind1[p1:p2], ind2[p1:p2] = old2[p1:p2], old1[p1:p2]
+    # 残りは衝突を起こさないものはそのまま、起こすものは切断点間の入れ替えを参照してコピー
+    for i in itertools.chain(range(p1), range(p2, size)):
+        if old1[i] not in ind1:
+            ind1[i] = old1[i]
+        else:
+            num = old1[i]
+            while num in ind1:
+                num = ind2[ind1.index(num)]
+            ind1[i] = num
+        if old2[i] not in ind2:
+            ind2[i] = old2[i]
+        else:
+            num = old2[i]
+            while num in ind2:
+                num = ind1[ind2.index(num)]
+            ind2[i] = num
 
     return ind1, ind2
