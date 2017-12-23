@@ -47,8 +47,6 @@ def select_individuals(individuals, n, elite_rate):
             if sel < 0:
                 chosen.append(rest[i])
                 break
-    # シャッフルする
-    random.shuffle(chosen)
 
     return chosen
 
@@ -180,12 +178,14 @@ if __name__ == '__main__':
         offspring = toolbox.select(pop, len(pop))
         offspring = list(map(toolbox.clone, offspring))
 
+        # シャッフルする
+        random.shuffle(offspring)
         # 交叉
-        for child1, child2 in zip(offspring[::2], offspring[1::2]):
-            if np.random.rand() < CROSSOVER_RATE:
-                toolbox.mate(child1, child2)
-                del child1.fitness.values
-                del child2.fitness.values
+        crossover_size = int(len(pop) * CROSSOVER_RATE)  # 交叉する個体数
+        for child1, child2 in zip(offspring[:crossover_size:2], offspring[1:crossover_size:2]):
+            toolbox.mate(child1, child2)
+            del child1.fitness.values
+            del child2.fitness.values
 
         # 突然変異
         for mutant in offspring:
