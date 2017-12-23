@@ -5,7 +5,7 @@ import random
 from deap import base, creator, tools
 import matplotlib.pyplot as plt
 import argparse
-import crossover
+import crossover, mutation
 
 positions = None    # 巡回する地点の座標
 distances = None    # 地点間の距離
@@ -29,16 +29,6 @@ def evaluate_individual(ind):
 def create_individual(length):
     """遺伝子を生成する関数"""
     return list(np.random.permutation(length))
-
-
-def mutate_individual(ind, indpb):
-    """遺伝子の突然変異を行う関数"""
-    size = len(ind)
-    for i in range(size):
-        if np.random.rand() < indpb:
-            ind[i] = np.random.randint(size - i)
-
-    return ind,
 
 
 def print_info_line(gen, min, max, ave, std, is_csv=False):
@@ -109,8 +99,8 @@ if __name__ == '__main__':
     toolbox.register("individual", tools.initIterate, creator.Individual, toolbox.create_individual)
     toolbox.register("population", tools.initRepeat, list, toolbox.individual)
     toolbox.register("evaluate", evaluate_individual)
-    toolbox.register("mate", crossover.order_crossover)
-    toolbox.register("mutate", tools.mutShuffleIndexes, indpb=BASE_MUTATION_RATE)
+    toolbox.register("mate", crossover.ordered_crossover)
+    toolbox.register("mutate", mutation.inversion_mutation)
     toolbox.register("select", tools.selTournament, tournsize=3)
 
     # 世代を生成
