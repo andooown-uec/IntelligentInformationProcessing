@@ -74,7 +74,6 @@ if __name__ == '__main__':
     parser.add_argument('pop_cnt',   help='Number of genes in each generations', type=int)
     parser.add_argument('crossover', help='Rate of crossover (0 ~ 1)',           type=float)
     parser.add_argument('mutation',  help='Rate of individual mutation (0 ~ 1)', type=float)
-    parser.add_argument('gene_mutation', help='Rate of gene mutation (0 ~ 1)',   type=float)
     # オプショナル引数を設定
     parser.add_argument('--seed', help='Seed value', type=int)
     parser.add_argument('--csv',  help='Output csv', action='store_true')
@@ -86,7 +85,6 @@ if __name__ == '__main__':
     INDIVIDUAL_COUNT = args.pop_cnt # 一世代あたりの遺伝子の数
     CROSSOVER_RATE = args.crossover # 交叉率
     MUTATION_RATE = args.mutation   # 突然変異率
-    BASE_MUTATION_RATE = args.gene_mutation # 符号ごとの突然変異率
 
     # 乱数のシード値を設定
     if args.seed:
