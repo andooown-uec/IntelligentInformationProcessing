@@ -31,16 +31,6 @@ def create_individual(length):
     return list(np.random.permutation(length))
 
 
-def mutate_individual(ind, indpb):
-    """遺伝子の突然変異を行う関数"""
-    size = len(ind)
-    for i in range(size):
-        if np.random.rand() < indpb:
-            ind[i] = np.random.randint(size - i)
-
-    return ind,
-
-
 def print_info_line(gen, min, max, ave, std, is_csv=False):
     """世代の情報を 1 行で表示する関数"""
     if is_csv:
