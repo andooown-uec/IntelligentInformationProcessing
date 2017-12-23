@@ -25,22 +25,25 @@ def cycle_crossover(ind1, ind2):
     return ind1, ind2
 
 
-def order_crossover(ind1, ind2):
+def ordered_crossover(ind1, ind2):
     """順序交叉"""
     size = len(ind1)  # 個体の大きさ
+    old1, old2 = ind1.copy(), ind2.copy()  # 親
+    # 子孫を初期化
+    ind1[:], ind2[:] = [-1] * size, [-1] * size
     # 切断点を決定する
     p1 = np.random.randint(0, size - 1)
     p2 = np.random.randint(p1 + 1, size)
     # 切断点間はそのままコピー
-    new1, new2 = ind1[p1:p2], ind2[p1:p2]   # 子孫
+    ind1[p1:p2], ind2[p1:p2] = old1[p1:p2], old2[p1:p2]
     # 第 2 切断点を先頭に並べ替え
-    ind1 = ind1[p2:] + ind1[:p1] + ind1[p1:p2]
-    ind2 = ind2[p2:] + ind2[:p1] + ind2[p1:p2]
+    old1 = old1[p2:] + old1[:p1] + old1[p1:p2]
+    old2 = old2[p2:] + old2[:p1] + old2[p1:p2]
     # 他方の子と衝突するものを除く
-    ind1 = list(filter(lambda x: x not in new2, ind1))
-    ind2 = list(filter(lambda x: x not in new1, ind2))
+    old1 = list(filter(lambda x: x not in ind2, old1))
+    old2 = list(filter(lambda x: x not in ind1, old2))
     # 残りを継承
-    new1 = ind2[size - p2:] + new1 + ind2[:size - p2]
-    new2 = ind1[size - p2:] + new2 + ind1[:size - p2]
+    ind1[:p1], ind2[:p1] = old2[size - p2:], old1[size - p2:]
+    ind1[p2:], ind2[p2:] = old2[:size - p2], old1[:size - p2]
 
-    return new1, new2
+    return ind1, ind2
