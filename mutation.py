@@ -49,6 +49,6 @@ def inversion_mutation(individual):
     if p1 > p2:
         p1, p2 = p2, p1
     # 2 点間の遺伝子を逆順に並べ替える
-    individual = individual[:p1] + list(reversed(individual[p1:p2])) + individual[p2:]
+    individual[p1:p2] = list(reversed(individual[p1:p2]))
 
     return individual,
