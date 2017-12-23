@@ -31,6 +31,30 @@ def create_individual(length):
     return list(np.random.permutation(length))
 
 
+def select_individuals(individuals, n, elite_rate):
+    """選択関数。指定された割合までエリート選択を行い、残りはルーレット選択を行う"""
+    # 適応度順に並び替える
+    individuals = sorted(individuals, key=lambda ind: ind.fitness.values[0], reverse=True)
+    # エリート選択を行う
+    chosen = individuals[:int(n * elite_rate)]   # 選ばれた個体
+    rest = individuals[len(chosen):]            # 残りの個体
+    # 残りの個体から適応度の逆数を用いてルーレット選択を行う
+    inverted_inds = list(map(lambda ind: (ind, 1 / ind.fitness.values[0]), rest))
+    sum_inverted = sum(map(lambda ind: ind[1], inverted_inds))
+    for _ in range(n - len(chosen)):
+        sel = np.random.rand() * sum_inverted
+        s = 0
+        for ind in inverted_inds:
+            s += ind[1]
+            if s > sel:
+                chosen.append(ind[0])
+                break
+    # シャッフルする
+    random.shuffle(chosen)
+
+    return chosen
+
+
 def print_info_line(gen, min, max, ave, std, is_csv=False):
     """世代の情報を 1 行で表示する関数"""
     if is_csv:
