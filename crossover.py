@@ -8,8 +8,7 @@ def cycle_crossover(ind1, ind2):
     size = len(ind1)    # 個体の大きさ
     old1, old2 = ind1.copy(), ind2.copy()   # 親
     # 子孫を初期化
-    for i in range(size):
-        ind1[i], ind2[i] = -1, -1
+    ind1[:], ind2[:] = [-1] * size, [-1] * size
     # 残す遺伝子を決める
     index = np.random.randint(size)
     while ind1[index] == -1:
