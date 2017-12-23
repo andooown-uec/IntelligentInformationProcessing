@@ -31,6 +31,30 @@ def create_individual(length):
     return list(np.random.permutation(length))
 
 
+def select_individuals(individuals, n, elite_rate):
+    """選択関数。指定された割合までエリート選択を行い、残りはルーレット選択を行う"""
+    # 適応度順に並び替える
+    individuals = sorted(individuals, key=lambda ind: ind.fitness.values[0], reverse=True)
+    # エリート選択を行う
+    chosen = individuals[:int(n * elite_rate)]   # 選ばれた個体
+    rest = individuals[len(chosen):]            # 残りの個体
+    # 残りの個体から適応度の逆数を用いてルーレット選択を行う
+    inverted_inds = list(map(lambda ind: (ind, 1 / ind.fitness.values[0]), rest))
+    sum_inverted = sum(map(lambda ind: ind[1], inverted_inds))
+    for _ in range(n - len(chosen)):
+        sel = np.random.rand() * sum_inverted
+        s = 0
+        for ind in inverted_inds:
+            s += ind[1]
+            if s > sel:
+                chosen.append(ind[0])
+                break
+    # シャッフルする
+    random.shuffle(chosen)
+
+    return chosen
+
+
 def print_info_line(gen, min, max, ave, std, is_csv=False):
     """世代の情報を 1 行で表示する関数"""
     if is_csv:
@@ -64,6 +88,7 @@ if __name__ == '__main__':
     parser.add_argument('pop_cnt',   help='Number of genes in each generations', type=int)
     parser.add_argument('crossover', help='Rate of crossover (0 ~ 1)',           type=float)
     parser.add_argument('mutation',  help='Rate of individual mutation (0 ~ 1)', type=float)
+    parser.add_argument('selection', help='Rate of elite selection (0 ~ 1)',     type=float)
     # オプショナル引数を設定
     parser.add_argument('--seed', help='Seed value', type=int)
     parser.add_argument('--csv',  help='Output csv', action='store_true')
@@ -75,6 +100,7 @@ if __name__ == '__main__':
     INDIVIDUAL_COUNT = args.pop_cnt # 一世代あたりの遺伝子の数
     CROSSOVER_RATE = args.crossover # 交叉率
     MUTATION_RATE = args.mutation   # 突然変異率
+    ELITE_RATE = args.selection     # エリート選択率
 
     # 乱数のシード値を設定
     if args.seed:
@@ -99,9 +125,9 @@ if __name__ == '__main__':
     toolbox.register("individual", tools.initIterate, creator.Individual, toolbox.create_individual)
     toolbox.register("population", tools.initRepeat, list, toolbox.individual)
     toolbox.register("evaluate", evaluate_individual)
-    toolbox.register("mate", crossover.ordered_crossover)
+    toolbox.register("mate", crossover.cycle_crossover)
     toolbox.register("mutate", mutation.inversion_mutation)
-    toolbox.register("select", tools.selTournament, tournsize=3)
+    toolbox.register("select", select_individuals, elite_rate=ELITE_RATE)
 
     # 世代を生成
     pop = toolbox.population(n=INDIVIDUAL_COUNT)
