@@ -10,8 +10,11 @@ def insert_mutation(individual):
     """
     size = len(individual)  # 個体の大きさ
     # 変異を行う 2 点を決定する
-    p1 = np.random.randint(0, size - 1)
-    p2 = np.random.randint(p1 + 1, size)
+    p1, p2 = np.random.randint(0, size, size=2)
+    if p1 == p2:
+        p2 = (p2 + 1) % size
+    if p1 > p2:
+        p1, p2 = p2, p1
     # p2 の位置にある遺伝子を p1 の位置に挿入
     individual.insert(p1, individual.pop(p2))
 
@@ -25,8 +28,9 @@ def swap_mutation(individual):
     """
     size = len(individual)  # 個体の大きさ
     # 変異を行う 2 点を決定する
-    p1 = np.random.randint(0, size - 1)
-    p2 = np.random.randint(p1 + 1, size)
+    p1, p2 = np.random.randint(0, size, size=2)
+    if p1 == p2:
+        p2 = (p2 + 1) % size
     # 遺伝子を入れ替える
     individual[p1], individual[p2] = individual[p2], individual[p1]
 
@@ -40,8 +44,10 @@ def inversion_mutation(individual):
     """
     size = len(individual)  # 個体の大きさ
     # 変異を行う 2 点を決定する
-    p1 = np.random.randint(0, size - 2)
-    p2 = np.random.randint(p1 + 2, size)
+    p1 = np.random.randint(0, size)
+    p2 = np.random.choice(list(range(0, p1 - 1)) + list(range(p1 + 2, size)))
+    if p1 > p2:
+        p1, p2 = p2, p1
     # 2 点間の遺伝子を逆順に並べ替える
     individual = individual[:p1] + list(reversed(individual[p1:p2])) + individual[p2:]
 
