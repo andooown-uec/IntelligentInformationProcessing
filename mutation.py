@@ -31,3 +31,18 @@ def swap_mutation(individual):
     individual[p1], individual[p2] = individual[p2], individual[p1]
 
     return individual,
+
+
+def inversion_mutation(individual):
+    """
+    逆位
+    ランダムに選んだ 2 点間の遺伝子を逆順に並べ替える方式。
+    """
+    size = len(individual)  # 個体の大きさ
+    # 変異を行う 2 点を決定する
+    p1 = np.random.randint(0, size - 2)
+    p2 = np.random.randint(p1 + 2, size)
+    # 2 点間の遺伝子を逆順に並べ替える
+    individual = individual[:p1] + list(reversed(individual[p1:p2])) + individual[p2:]
+
+    return individual,
