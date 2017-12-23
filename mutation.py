@@ -16,3 +16,18 @@ def insert_mutation(individual):
     individual.insert(p1, individual.pop(p2))
 
     return individual,
+
+
+def swap_mutation(individual):
+    """
+    交換
+    ランダムに選んだ 2 つの遺伝子を入れ替える方式。
+    """
+    size = len(individual)  # 個体の大きさ
+    # 変異を行う 2 点を決定する
+    p1 = np.random.randint(0, size - 1)
+    p2 = np.random.randint(p1 + 1, size)
+    # 遺伝子を入れ替える
+    individual[p1], individual[p2] = individual[p2], individual[p1]
+
+    return individual,
