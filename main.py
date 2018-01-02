@@ -34,7 +34,7 @@ def create_individual(length):
 def select_individuals(individuals, n, elite_rate):
     """選択関数。指定された割合までエリート選択を行い、残りはルーレット選択を行う"""
     # 適応度順に並び替える
-    individuals = sorted(individuals, key=lambda ind: ind.fitness.values[0], reverse=True)
+    individuals = sorted(individuals, key=lambda ind: ind.fitness.values[0])
     # エリート選択を行う
     chosen = individuals[:int(n * elite_rate)]   # 選ばれた個体
     rest = individuals[len(chosen):]            # 残りの個体
