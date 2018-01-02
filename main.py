@@ -174,17 +174,22 @@ if __name__ == '__main__':
     # 学習
     for g in range(GENERATION_COUNT):
         # 個体を選択し、そのクローンを作成
-        offspring = toolbox.select(pop, len(pop))
+        offspring = toolbox.select(pop, INDIVIDUAL_COUNT)
         offspring = list(map(toolbox.clone, offspring))
 
         # シャッフルする
         random.shuffle(offspring)
         # 交叉
         crossover_size = int(len(pop) * CROSSOVER_RATE)  # 交叉する個体数
-        for child1, child2 in zip(offspring[:crossover_size:2], offspring[1:crossover_size:2]):
+        for parent1, parent2 in zip(offspring[:crossover_size:2], offspring[1:crossover_size:2]):
+            # 交叉により新しい個体を生成し、その個体の適合度をリセットする
+            child1, child2 = toolbox.clone(parent1), toolbox.clone(parent2)
             toolbox.mate(child1, child2)
             del child1.fitness.values
             del child2.fitness.values
+            # 世代に新しい個体を追加
+            offspring.append(child1)
+            offspring.append(child2)
 
         # 突然変異
         for mutant in offspring:
