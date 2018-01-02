@@ -5,9 +5,11 @@ import random
 from deap import base, creator, tools
 import matplotlib.pyplot as plt
 import argparse
+import json
 import crossover, mutation
 
 positions = None    # 巡回する地点の座標
+position_min, position_max = 0, 0   # 巡回する地点の座標の最小値と最大値
 distances = None    # 地点間の距離
 converter = None    # 遺伝子と巡回する順番のコンバータ
 current_distance = 0        # 現在の移動距離
@@ -90,6 +92,7 @@ if __name__ == '__main__':
     parser.add_argument('--verbose',    help='Verbose',           action='store_true')
     parser.add_argument('--csv',        help='Output csv',        action='store_true')
     parser.add_argument('--no-display', help="Don't show graphs", action='store_true')
+    parser.add_argument('--data',       help='Cities data file',  action='store', nargs='?', const=None, default=None, type=str)
     # 引数をパース
     args = parser.parse_args()
     # 定数を設定
@@ -105,12 +108,25 @@ if __name__ == '__main__':
         random.seed(args.seed)
         np.random.seed(args.seed)
 
-    # 巡回する地点の座標を作成
-    positions = np.random.randint(-1000, 1001, size=(POSITIONS_COUNT, 2))
+    if args.data:
+        with open(args.data, 'r') as f:
+            # ファイルから座標を読み込む
+            data = json.load(f)
+            # 配列に格納
+            positions = []
+            for city in data['cities']:
+                positions.append([city['x'], city['y']])
+            positions = np.asarray(positions)
+            # 座標の範囲を取得
+            position_min, position_max = data['params']['min'], data['params']['max']
+    else:
+        # 巡回する地点の座標を作成
+        position_min, position_max = -1000, 1000
+        positions = np.random.randint(position_min, position_max + 1, size=(POSITIONS_COUNT, 2))
     # 座標軸ごとの各点の距離を計算
     xs, ys = [positions[:, i] for i in [0, 1]]
-    dx = xs - xs.reshape((POSITIONS_COUNT, 1))
-    dy = ys - ys.reshape((POSITIONS_COUNT, 1))
+    dx = xs - xs.reshape((len(positions), 1))
+    dy = ys - ys.reshape((len(positions), 1))
     # 各点ごとの距離を計算
     distances = np.sqrt(dx ** 2 + dy ** 2)
 
@@ -119,7 +135,7 @@ if __name__ == '__main__':
     creator.create("Individual", list, fitness=creator.FitnessMax)
     # toolbox の設定
     toolbox = base.Toolbox()
-    toolbox.register("create_individual", create_individual, POSITIONS_COUNT)
+    toolbox.register("create_individual", create_individual, len(positions))
     toolbox.register("individual", tools.initIterate, creator.Individual, toolbox.create_individual)
     toolbox.register("population", tools.initRepeat, list, toolbox.individual)
     toolbox.register("evaluate", evaluate_individual)
@@ -140,7 +156,7 @@ if __name__ == '__main__':
 
     # 情報を表示
     if args.verbose:
-        print('Positions: {}'.format(POSITIONS_COUNT))
+        print('Positions: {}'.format(len(positions)))
         print('Generations: {}'.format(GENERATION_COUNT))
         print('Individual: {} / generation'.format(INDIVIDUAL_COUNT))
         print('Crossover rate: {}'.format(CROSSOVER_RATE))
@@ -164,8 +180,10 @@ if __name__ == '__main__':
         # 各地点をプロット
         ax1.scatter(positions[:, 0], positions[:, 1], color='cyan', zorder=2)
         # グラフの範囲を指定
-        ax1.set_xlim(-1100, 1100)
-        ax1.set_ylim(-1100, 1100)
+        rng = position_max - position_min
+        rng_min, rng_max = position_min - rng * 0.1, position_max + rng * 0.1
+        ax1.set_xlim(rng_min, rng_max)
+        ax1.set_ylim(rng_min, rng_max)
         # 進捗表示用のグラフを作成
         distance_plot, = ax2.plot([0], [current_distance], color='blue')
         # グラフの範囲を指定
