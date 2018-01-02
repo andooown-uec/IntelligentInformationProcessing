@@ -106,7 +106,7 @@ if __name__ == '__main__':
         np.random.seed(args.seed)
 
     # 巡回する地点の座標を作成
-    positions = np.random.randint(-200, 201, size=(POSITIONS_COUNT, 2))
+    positions = np.random.randint(-1000, 1001, size=(POSITIONS_COUNT, 2))
     # 座標軸ごとの各点の距離を計算
     xs, ys = [positions[:, i] for i in [0, 1]]
     dx = xs - xs.reshape((POSITIONS_COUNT, 1))
@@ -164,8 +164,8 @@ if __name__ == '__main__':
         # 各地点をプロット
         ax1.scatter(positions[:, 0], positions[:, 1], color='cyan', zorder=2)
         # グラフの範囲を指定
-        ax1.set_xlim(-250, 250)
-        ax1.set_ylim(-250, 250)
+        ax1.set_xlim(-1100, 1100)
+        ax1.set_ylim(-1100, 1100)
         # 進捗表示用のグラフを作成
         distance_plot, = ax2.plot([0], [current_distance], color='blue')
         # グラフの範囲を指定
