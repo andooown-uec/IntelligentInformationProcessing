@@ -166,7 +166,7 @@ if __name__ == '__main__':
     distance_plot, = ax2.plot([0], [current_distance], color='blue')
     # グラフの範囲を指定
     ax2.set_xlim(0, GENERATION_COUNT)
-    ax2.set_ylim(0, current_distance * 3.0)
+    ax2.set_ylim(0, current_distance * 1.2)
     update_figure(order_plot, distance_plot)
     plt.draw()
     plt.pause(0.01)
