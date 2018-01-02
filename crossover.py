@@ -57,8 +57,10 @@ def partially_mapped_crossover(ind1, ind2):
     # 子孫を初期化
     ind1[:], ind2[:] = [-1] * size, [-1] * size
     # 切断点を決定する
-    p1 = np.random.randint(0, size - 1)
-    p2 = np.random.randint(p1 + 1, size)
+    p1, p2 = np.random.randint(0, size), np.random.randint(0, size)
+    if p1 == p2:
+        p2 = (p2 + 1) % size
+    p1, p2 = min(p1, p2), max(p1, p2)
     # 切断点間は他方の親のコピー
     ind1[p1:p2], ind2[p1:p2] = old2[p1:p2], old1[p1:p2]
     # 残りは衝突を起こさないものはそのまま、起こすものは切断点間の入れ替えを参照してコピー
