@@ -86,9 +86,10 @@ if __name__ == '__main__':
     parser.add_argument('mutation',  help='Rate of individual mutation (0 ~ 1)', type=float)
     parser.add_argument('selection', help='Rate of elite selection (0 ~ 1)',     type=float)
     # オプショナル引数を設定
-    parser.add_argument('--seed',    help='Seed value', type=int)
-    parser.add_argument('--verbose', help='Verbose',    action='store_true')
-    parser.add_argument('--csv',     help='Output csv', action='store_true')
+    parser.add_argument('--seed',       help='Seed value',        type=int)
+    parser.add_argument('--verbose',    help='Verbose',           action='store_true')
+    parser.add_argument('--csv',        help='Output csv',        action='store_true')
+    parser.add_argument('--no-display', help="Don't show graphs", action='store_true')
     # 引数をパース
     args = parser.parse_args()
     # 定数を設定
@@ -150,27 +151,29 @@ if __name__ == '__main__':
     elif args.csv:
         print('Gen', 'Min', 'Max', 'Ave', 'Std', sep=',')
 
-    # インタラクティブモードを有効化
-    plt.ion()
-    # グラフを作成
-    fig = plt.figure(figsize=(3, 5))
-    ax1 = fig.add_subplot(2, 1, 1)
-    ax2 = fig.add_subplot(2, 1, 2)
-    # 経路用のグラフを作成
-    order_plot, = ax1.plot(positions[:, 0], positions[:, 1], color='blue', linewidth=3, zorder=1)
-    # 各地点をプロット
-    ax1.scatter(positions[:, 0], positions[:, 1], color='cyan', zorder=2)
-    # グラフの範囲を指定
-    ax1.set_xlim(-250, 250)
-    ax1.set_ylim(-250, 250)
-    # 進捗表示用のグラフを作成
-    distance_plot, = ax2.plot([0], [current_distance], color='blue')
-    # グラフの範囲を指定
-    ax2.set_xlim(0, GENERATION_COUNT)
-    ax2.set_ylim(0, current_distance * 1.2)
-    update_figure(order_plot, distance_plot)
-    plt.draw()
-    plt.pause(0.01)
+    # グラフの設定
+    if not args.no_display:
+        # インタラクティブモードを有効化
+        plt.ion()
+        # グラフを作成
+        fig = plt.figure(figsize=(3, 5))
+        ax1 = fig.add_subplot(2, 1, 1)
+        ax2 = fig.add_subplot(2, 1, 2)
+        # 経路用のグラフを作成
+        order_plot, = ax1.plot(positions[:, 0], positions[:, 1], color='blue', linewidth=3, zorder=1)
+        # 各地点をプロット
+        ax1.scatter(positions[:, 0], positions[:, 1], color='cyan', zorder=2)
+        # グラフの範囲を指定
+        ax1.set_xlim(-250, 250)
+        ax1.set_ylim(-250, 250)
+        # 進捗表示用のグラフを作成
+        distance_plot, = ax2.plot([0], [current_distance], color='blue')
+        # グラフの範囲を指定
+        ax2.set_xlim(0, GENERATION_COUNT)
+        ax2.set_ylim(0, current_distance * 1.2)
+        update_figure(order_plot, distance_plot)
+        plt.draw()
+        plt.pause(0.01)
 
     # 学習
     for g in range(GENERATION_COUNT):
@@ -225,9 +228,10 @@ if __name__ == '__main__':
             std = abs(sum2 / length - mean ** 2) ** 0.5
             print_info_line(g, current_distance, max(fits), mean, std, args.csv)
         # グラフを更新
-        update_figure(order_plot, distance_plot)
-        plt.draw()
-        plt.pause(0.01)
+        if not args.no_display:
+            update_figure(order_plot, distance_plot)
+            plt.draw()
+            plt.pause(0.01)
 
     # 結果を表示
     if args.verbose:
