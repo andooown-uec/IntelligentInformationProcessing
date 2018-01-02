@@ -86,8 +86,9 @@ if __name__ == '__main__':
     parser.add_argument('mutation',  help='Rate of individual mutation (0 ~ 1)', type=float)
     parser.add_argument('selection', help='Rate of elite selection (0 ~ 1)',     type=float)
     # オプショナル引数を設定
-    parser.add_argument('--seed', help='Seed value', type=int)
-    parser.add_argument('--csv',  help='Output csv', action='store_true')
+    parser.add_argument('--seed',    help='Seed value', type=int)
+    parser.add_argument('--verbose', help='Verbose',    action='store_true')
+    parser.add_argument('--csv',     help='Output csv', action='store_true')
     # 引数をパース
     args = parser.parse_args()
     # 定数を設定
@@ -137,9 +138,7 @@ if __name__ == '__main__':
     current_distance = evaluate_individual(current_individual)[0]
 
     # 情報を表示
-    if args.csv:
-        print('Gen', 'Min', 'Max', 'Ave', 'Std', sep=',')
-    else:
+    if args.verbose:
         print('Positions: {}'.format(POSITIONS_COUNT))
         print('Generations: {}'.format(GENERATION_COUNT))
         print('Individual: {} / generation'.format(INDIVIDUAL_COUNT))
@@ -148,6 +147,8 @@ if __name__ == '__main__':
         print()
         print('{0:<5} {1:<12} {2:<12} {3:<12} {4:<12}'.format('Gen', 'Min', 'Max', 'Ave', 'Std'))
         print('=' * 58)
+    elif args.csv:
+        print('Gen', 'Min', 'Max', 'Ave', 'Std', sep=',')
 
     # インタラクティブモードを有効化
     plt.ion()
@@ -217,18 +218,19 @@ if __name__ == '__main__':
         distance_history.append(current_distance)
 
         # 情報を表示
-        length = len(pop)
-        mean = sum(fits) / length
-        sum2 = sum([x * x for x in fits])
-        std = abs(sum2 / length - mean ** 2) ** 0.5
-        print_info_line(g, current_distance, max(fits), mean, std, args.csv)
+        if args.verbose or args.csv:
+            length = len(pop)
+            mean = sum(fits) / length
+            sum2 = sum([x * x for x in fits])
+            std = abs(sum2 / length - mean ** 2) ** 0.5
+            print_info_line(g, current_distance, max(fits), mean, std, args.csv)
         # グラフを更新
         update_figure(order_plot, distance_plot)
         plt.draw()
         plt.pause(0.01)
 
     # 結果を表示
-    if not args.csv:
+    if args.verbose:
         print()
         print("Best order:\n  {}".format(current_individual))
         print("Moving distance: {:.4f}".format(current_individual.fitness.values[0]))
