@@ -22,7 +22,7 @@ def evaluate_individual(ind):
     """遺伝子の評価関数。移動距離の合計を返す"""
     total = distances[ind[0], ind[-1]]
     for i, j in zip(ind[:-1], ind[1:]):
-        total += distances[ind[i], ind[j]]
+        total += distances[i, j]
 
     return total,
 
