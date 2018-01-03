@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 from abc import ABCMeta, abstractmethod
-import matplotlib.pyplot as plt
 
 
 class AbstractView(metaclass=ABCMeta):
