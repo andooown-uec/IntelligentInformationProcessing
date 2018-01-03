@@ -11,7 +11,7 @@ class GraphView(AbstractView):
     _fitness_hist = []  # 適応度の履歴
 
 
-    def __init__(self, positions, position_min, position_max, generation_count, hof):
+    def __init__(self, positions, generation_count, hof):
         """
         コンストラクタ
         :param positions: 巡回する地点のリスト
@@ -36,10 +36,11 @@ class GraphView(AbstractView):
         # 各地点をプロット
         ax1.scatter(self._pos[:, 0], self._pos[:, 1], color='cyan', zorder=2)
         # グラフの範囲を指定
-        rng = position_max - position_min
-        rng_min, rng_max = position_min - rng * 0.1, position_max + rng * 0.1
-        ax1.set_xlim(rng_min, rng_max)
-        ax1.set_ylim(rng_min, rng_max)
+        x_min, x_max = positions[:, 0].min(), positions[:, 0].max()
+        y_min, y_max = positions[:, 1].min(), positions[:, 1].max()
+        x_rng, y_rng = x_max - x_min, y_max - y_min
+        ax1.set_xlim(x_min - x_rng * 0.1, x_max + x_rng * 0.1)
+        ax1.set_ylim(y_min - y_rng * 0.1, y_max + y_rng * 0.1)
 
         # 進捗表示用のグラフを作成
         self._fitness_plot, = ax2.plot([0], [self._hof.items[0].fitness.values[0]], color='blue')
