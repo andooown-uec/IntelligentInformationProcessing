@@ -13,27 +13,21 @@ def load_positions(filename):
     """ファイルから巡回する地点の情報を取得する関数"""
     # ファイルを開く
     with open(filename, 'r') as f:
-        # ファイルから座標を読み込む
+        # ファイルから JSON データを読み込む
         data = json.load(f)
-        # 配列に格納
-        pos = []
-        for city in data['cities']:
-            pos.append([city['x'], city['y']])
-        pos = np.asarray(pos)
+        # 情報を取得
+        pos = np.asarray(data['positions'], dtype=np.float64)   # 地点の座標
+        dist = np.asarray(data['distances'], dtype=np.float64)  # 地点間の距離
+        opt_dist = data['optical_distance']     # 最適な距離
+        opt_order = data['optical_order']       # 最適な巡回順
 
-    return pos
+    return pos, dist, opt_dist, opt_order
 
 
 def create_random_positions(count, pos_min, pos_max):
     """ランダムな地点を作成する関数"""
     # 巡回する地点の座標を作成
     pos = np.random.randint(pos_min, pos_max + 1, size=(count, 2))
-
-    return pos
-
-
-def calc_distances(pos):
-    """地点の座標から距離マップを計算する関数"""
     # 座標軸ごとの各点の距離を計算
     xs, ys = [pos[:, i] for i in [0, 1]]
     dx = xs - xs.reshape((len(pos), 1))
@@ -41,7 +35,7 @@ def calc_distances(pos):
     # 各点ごとの距離を計算
     dist = np.sqrt(dx ** 2 + dy ** 2)
 
-    return dist
+    return pos, dist
 
 
 def evaluate_individual(ind, distances):
@@ -98,12 +92,10 @@ if __name__ == '__main__':
 
     if args.data:
         # ファイルから巡回する地点の情報を取得
-        positions = load_positions(args.data)
+        positions, distances, optical_distance, optical_order = load_positions(args.data)
     else:
         # ランダムな地点を作成
-        positions = create_random_positions(POSITIONS_COUNT, -1000, 1000)
-    # 地点間の距離を計算
-    distances = calc_distances(positions)
+        positions, distances = create_random_positions(POSITIONS_COUNT, -1000, 1000)
 
     # creator の設定
     creator.create("FitnessMin", base.Fitness, weights=(-1.0,))
