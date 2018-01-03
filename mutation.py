@@ -44,10 +44,10 @@ def inversion_mutation(individual):
     """
     size = len(individual)  # 個体の大きさ
     # 変異を行う 2 点を決定する
-    p1 = np.random.randint(0, size)
-    p2 = np.random.choice(list(range(0, p1 - 1)) + list(range(p1 + 2, size)))
-    if p1 > p2:
-        p1, p2 = p2, p1
+    p1, p2 = np.random.randint(0, size), np.random.randint(0, size)
+    if p1 == p2:
+        p2 = (p2 + 1) % size
+    p1, p2 = min(p1, p2), max(p1, p2)
     # 2 点間の遺伝子を逆順に並べ替える
     individual[p1:p2] = list(reversed(individual[p1:p2]))
 

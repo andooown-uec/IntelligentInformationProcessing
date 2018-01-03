@@ -2,16 +2,17 @@
 
 import numpy as np
 import random
-from deap import base, creator, tools
+from deap import algorithms, base, creator, tools
 import matplotlib.pyplot as plt
 import argparse
+import json
 import crossover, mutation
 
 positions = None    # 巡回する地点の座標
+position_min, position_max = 0, 0   # 巡回する地点の座標の最小値と最大値
 distances = None    # 地点間の距離
 converter = None    # 遺伝子と巡回する順番のコンバータ
-current_distance = 0        # 現在の移動距離
-current_individual = None   # 現在の遺伝子
+hof = None              # 殿堂入り個体を保存するオブジェクト
 order_plot = None       # 巡回ルート表示用のオブジェクト
 distance_plot = None    # 距離表示用のオブジェクト
 distance_history = []   # 距離の履歴
@@ -21,7 +22,7 @@ def evaluate_individual(ind):
     """遺伝子の評価関数。移動距離の合計を返す"""
     total = distances[ind[0], ind[-1]]
     for i, j in zip(ind[:-1], ind[1:]):
-        total += distances[ind[i], ind[j]]
+        total += distances[i, j]
 
     return total,
 
@@ -34,7 +35,7 @@ def create_individual(length):
 def select_individuals(individuals, n, elite_rate):
     """選択関数。指定された割合までエリート選択を行い、残りはルーレット選択を行う"""
     # 適応度順に並び替える
-    individuals = sorted(individuals, key=lambda ind: ind.fitness.values[0], reverse=True)
+    individuals = sorted(individuals, key=lambda ind: ind.fitness.values[0])
     # エリート選択を行う
     chosen = individuals[:int(n * elite_rate)]   # 選ばれた個体
     rest = individuals[len(chosen):]            # 残りの個体
@@ -47,8 +48,6 @@ def select_individuals(individuals, n, elite_rate):
             if sel < 0:
                 chosen.append(rest[i])
                 break
-    # シャッフルする
-    random.shuffle(chosen)
 
     return chosen
 
@@ -69,7 +68,7 @@ def print_info_line(gen, min, max, ave, std, is_csv=False):
 def update_figure(order_plot, distance_plot):
     """グラフを更新する関数"""
     # 経路を更新
-    pos = positions[current_individual + [current_individual[0]]]
+    pos = positions[hof.items[0] + [hof.items[0][0]]]
     order_plot.set_xdata(pos[:, 0])
     order_plot.set_ydata(pos[:, 1])
     # 距離を更新
@@ -88,8 +87,11 @@ if __name__ == '__main__':
     parser.add_argument('mutation',  help='Rate of individual mutation (0 ~ 1)', type=float)
     parser.add_argument('selection', help='Rate of elite selection (0 ~ 1)',     type=float)
     # オプショナル引数を設定
-    parser.add_argument('--seed', help='Seed value', type=int)
-    parser.add_argument('--csv',  help='Output csv', action='store_true')
+    parser.add_argument('--seed',       help='Seed value',        type=int)
+    parser.add_argument('--verbose',    help='Verbose',           action='store_true')
+    parser.add_argument('--csv',        help='Output csv',        action='store_true')
+    parser.add_argument('--no-display', help="Don't show graphs", action='store_true')
+    parser.add_argument('--data',       help='Cities data file',  action='store', nargs='?', const=None, default=None, type=str)
     # 引数をパース
     args = parser.parse_args()
     # 定数を設定
@@ -105,21 +107,34 @@ if __name__ == '__main__':
         random.seed(args.seed)
         np.random.seed(args.seed)
 
-    # 巡回する地点の座標を作成
-    positions = np.random.randint(-200, 201, size=(POSITIONS_COUNT, 2))
+    if args.data:
+        with open(args.data, 'r') as f:
+            # ファイルから座標を読み込む
+            data = json.load(f)
+            # 配列に格納
+            positions = []
+            for city in data['cities']:
+                positions.append([city['x'], city['y']])
+            positions = np.asarray(positions)
+            # 座標の範囲を取得
+            position_min, position_max = data['params']['min'], data['params']['max']
+    else:
+        # 巡回する地点の座標を作成
+        position_min, position_max = -1000, 1000
+        positions = np.random.randint(position_min, position_max + 1, size=(POSITIONS_COUNT, 2))
     # 座標軸ごとの各点の距離を計算
     xs, ys = [positions[:, i] for i in [0, 1]]
-    dx = xs - xs.reshape((POSITIONS_COUNT, 1))
-    dy = ys - ys.reshape((POSITIONS_COUNT, 1))
+    dx = xs - xs.reshape((len(positions), 1))
+    dy = ys - ys.reshape((len(positions), 1))
     # 各点ごとの距離を計算
     distances = np.sqrt(dx ** 2 + dy ** 2)
 
     # creator の設定
-    creator.create("FitnessMax", base.Fitness, weights=(-1.0,))
-    creator.create("Individual", list, fitness=creator.FitnessMax)
+    creator.create("FitnessMin", base.Fitness, weights=(-1.0,))
+    creator.create("Individual", list, fitness=creator.FitnessMin)
     # toolbox の設定
     toolbox = base.Toolbox()
-    toolbox.register("create_individual", create_individual, POSITIONS_COUNT)
+    toolbox.register("create_individual", create_individual, len(positions))
     toolbox.register("individual", tools.initIterate, creator.Individual, toolbox.create_individual)
     toolbox.register("population", tools.initRepeat, list, toolbox.individual)
     toolbox.register("evaluate", evaluate_individual)
@@ -134,15 +149,13 @@ if __name__ == '__main__':
     fitnesses = list(map(toolbox.evaluate, pop))
     for ind, fit in zip(pop, fitnesses):
         ind.fitness.values = fit
-    # 現在の距離と最良の遺伝子を更新
-    current_individual = tools.selBest(pop, 1)[0]
-    current_distance = evaluate_individual(current_individual)[0]
+    # 殿堂入り個体を保存するオブジェクトを作成し、更新する
+    hof = tools.HallOfFame(1)
+    hof.update(pop)
 
     # 情報を表示
-    if args.csv:
-        print('Gen', 'Min', 'Max', 'Ave', 'Std', sep=',')
-    else:
-        print('Positions: {}'.format(POSITIONS_COUNT))
+    if args.verbose:
+        print('Positions: {}'.format(len(positions)))
         print('Generations: {}'.format(GENERATION_COUNT))
         print('Individual: {} / generation'.format(INDIVIDUAL_COUNT))
         print('Crossover rate: {}'.format(CROSSOVER_RATE))
@@ -150,81 +163,76 @@ if __name__ == '__main__':
         print()
         print('{0:<5} {1:<12} {2:<12} {3:<12} {4:<12}'.format('Gen', 'Min', 'Max', 'Ave', 'Std'))
         print('=' * 58)
+    elif args.csv:
+        print('Gen', 'Min', 'Max', 'Ave', 'Std', sep=',')
 
-    # インタラクティブモードを有効化
-    plt.ion()
-    # グラフを作成
-    fig = plt.figure(figsize=(3, 5))
-    ax1 = fig.add_subplot(2, 1, 1)
-    ax2 = fig.add_subplot(2, 1, 2)
-    # 経路用のグラフを作成
-    order_plot, = ax1.plot(positions[:, 0], positions[:, 1], color='blue', linewidth=3, zorder=1)
-    # 各地点をプロット
-    ax1.scatter(positions[:, 0], positions[:, 1], color='cyan', zorder=2)
-    # グラフの範囲を指定
-    ax1.set_xlim(-250, 250)
-    ax1.set_ylim(-250, 250)
-    # 進捗表示用のグラフを作成
-    distance_plot, = ax2.plot([0], [current_distance], color='blue')
-    # グラフの範囲を指定
-    ax2.set_xlim(0, GENERATION_COUNT)
-    ax2.set_ylim(0, current_distance * 1.2)
-    # グラフを表示
-    update_figure(order_plot, distance_plot)
-    plt.draw()
-    plt.pause(0.01)
-
-    # 学習
-    for g in range(GENERATION_COUNT):
-        # 個体を選択し、そのクローンを作成
-        offspring = toolbox.select(pop, len(pop))
-        offspring = list(map(toolbox.clone, offspring))
-
-        # 交叉
-        for child1, child2 in zip(offspring[::2], offspring[1::2]):
-            if np.random.rand() < CROSSOVER_RATE:
-                toolbox.mate(child1, child2)
-                del child1.fitness.values
-                del child2.fitness.values
-
-        # 突然変異
-        for mutant in offspring:
-            if np.random.rand() < MUTATION_RATE:
-                toolbox.mutate(mutant)
-                del mutant.fitness.values
-
-
-        # 交叉や突然変異で適応度がリセットされた個体を抽出
-        invalid_ind = [ind for ind in offspring if not ind.fitness.valid]
-        # 適応度を再計算
-        fitnesses = map(toolbox.evaluate, invalid_ind)
-        for ind, fit in zip(invalid_ind, fitnesses):
-            ind.fitness.values = fit
-
-        # 世代を更新
-        pop[:] = offspring
-        # 適応度を取得
-        fits = [ind.fitness.values[0] for ind in pop]
-
-        # 現在の距離と最良の遺伝子を更新
-        current_distance = min(fits)
-        current_individual = tools.selBest(pop, 1)[0]
-        # 距離の履歴を更新
-        distance_history.append(current_distance)
-
-        # 情報を表示
-        length = len(pop)
-        mean = sum(fits) / length
-        sum2 = sum([x * x for x in fits])
-        std = abs(sum2 / length - mean ** 2) ** 0.5
-        print_info_line(g, current_distance, max(fits), mean, std, args.csv)
-        # グラフを更新
+    # グラフの設定
+    if not args.no_display:
+        # インタラクティブモードを有効化
+        plt.ion()
+        # グラフを作成
+        fig = plt.figure(figsize=(3, 5))
+        ax1 = fig.add_subplot(2, 1, 1)
+        ax2 = fig.add_subplot(2, 1, 2)
+        # 経路用のグラフを作成
+        order_plot, = ax1.plot(positions[:, 0], positions[:, 1], color='blue', linewidth=3, zorder=1)
+        # 各地点をプロット
+        ax1.scatter(positions[:, 0], positions[:, 1], color='cyan', zorder=2)
+        # グラフの範囲を指定
+        rng = position_max - position_min
+        rng_min, rng_max = position_min - rng * 0.1, position_max + rng * 0.1
+        ax1.set_xlim(rng_min, rng_max)
+        ax1.set_ylim(rng_min, rng_max)
+        # 進捗表示用のグラフを作成
+        distance_plot, = ax2.plot([0], [hof.items[0].fitness.values[0]], color='blue')
+        # グラフの範囲を指定
+        ax2.set_xlim(0, GENERATION_COUNT)
+        ax2.set_ylim(0, hof.items[0].fitness.values[0] * 1.2)
         update_figure(order_plot, distance_plot)
         plt.draw()
         plt.pause(0.01)
 
+    # 学習
+    for g in range(1, GENERATION_COUNT + 1):
+        # 個体を選択
+        offspring = toolbox.select(pop, len(pop))
+
+        # 交叉と突然変異
+        offspring = algorithms.varAnd(offspring, toolbox, CROSSOVER_RATE, MUTATION_RATE)
+
+        # 適応度がリセットされた個体の適応度を再計算
+        invalid_ind = [ind for ind in offspring if not ind.fitness.valid]
+        fitnesses = map(toolbox.evaluate, invalid_ind)
+        for ind, fit in zip(invalid_ind, fitnesses):
+            ind.fitness.values = fit
+
+        # 殿堂入り個体を更新
+        hof.update(offspring)
+        # 距離の履歴を更新
+        distance_history.append(hof.items[0].fitness.values[0])
+
+        # 世代を更新
+        pop[:] = offspring
+
+        # 情報を表示
+        if args.verbose or args.csv:
+            # 適応度を取得
+            fits = [ind.fitness.values[0] for ind in pop]
+            # 集計
+            length = len(pop)
+            mean = sum(fits) / length
+            sum2 = sum([x * x for x in fits])
+            std = abs(sum2 / length - mean ** 2) ** 0.5
+            # 情報を表示
+            print_info_line(g, hof.items[0].fitness.values[0], max(fits), mean, std, args.csv)
+        # グラフを更新
+        if not args.no_display:
+            update_figure(order_plot, distance_plot)
+            plt.draw()
+            plt.pause(0.01)
+
     # 結果を表示
-    if not args.csv:
+    if args.verbose:
         print()
-        print("Best order:\n  {}".format(current_individual))
-        print("Moving distance: {:.4f}".format(current_individual.fitness.values[0]))
+        print("Best order:\n  {}".format(hof.items[0]))
+        print("Moving distance: {:.4f}".format(hof.items[0].fitness.values[0]))
