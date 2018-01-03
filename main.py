@@ -54,6 +54,9 @@ def update_figure(order_plot, distance_plot):
     # 距離を更新
     distance_plot.set_xdata(range(len(distance_history)))
     distance_plot.set_ydata(distance_history)
+    # 表示を更新
+    plt.draw()
+    plt.pause(0.01)
 
 
 if __name__ == '__main__':
@@ -168,9 +171,8 @@ if __name__ == '__main__':
         # グラフの範囲を指定
         ax2.set_xlim(0, GENERATION_COUNT)
         ax2.set_ylim(0, hof.items[0].fitness.values[0] * 1.2)
+        # グラフを更新
         update_figure(order_plot, distance_plot)
-        plt.draw()
-        plt.pause(0.01)
 
     # 学習
     for g in range(1, GENERATION_COUNT + 1):
@@ -208,8 +210,6 @@ if __name__ == '__main__':
         # グラフを更新
         if not args.no_display:
             update_figure(order_plot, distance_plot)
-            plt.draw()
-            plt.pause(0.01)
 
     # 結果を表示
     if args.verbose:
