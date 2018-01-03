@@ -107,11 +107,11 @@ if __name__ == '__main__':
     views = []
     if args.verbose:
         # 進捗出力
-        stats = {'gen': 0, 'min': 0, 'max': 0, 'ave': 0, 'std': 0}
+        stats = {}
         views.append(VerboseView(POSITIONS_COUNT, GENERATION_COUNT, INDIVIDUAL_COUNT, CROSSOVER_RATE, MUTATION_RATE, stats, hof))
     elif args.csv:
         # CSV 出力
-        stats = {'gen': 0, 'min': 0, 'max': 0, 'ave': 0, 'std': 0}
+        stats = {}
         views.append(CSVOutputView(stats))
     # グラフ表示用の View オブジェクトを作成する
     if not args.no_display:
