@@ -2,7 +2,7 @@
 
 import numpy as np
 import random
-from deap import base, creator, tools
+from deap import algorithms, base, creator, tools
 import matplotlib.pyplot as plt
 import argparse
 import json
@@ -197,34 +197,14 @@ if __name__ == '__main__':
 
     # 学習
     for g in range(1, GENERATION_COUNT + 1):
-        # 個体を選択し、そのクローンを作成
-        offspring = toolbox.select(pop, INDIVIDUAL_COUNT)
-        offspring = list(map(toolbox.clone, offspring))
+        # 個体を選択
+        offspring = toolbox.select(pop, len(pop))
 
-        # シャッフルする
-        random.shuffle(offspring)
-        # 交叉
-        crossover_size = int(len(pop) * CROSSOVER_RATE)  # 交叉する個体数
-        for parent1, parent2 in zip(offspring[:crossover_size:2], offspring[1:crossover_size:2]):
-            # 交叉により新しい個体を生成し、その個体の適合度をリセットする
-            child1, child2 = toolbox.clone(parent1), toolbox.clone(parent2)
-            toolbox.mate(child1, child2)
-            del child1.fitness.values
-            del child2.fitness.values
-            # 世代に新しい個体を追加
-            offspring.append(child1)
-            offspring.append(child2)
+        # 交叉と突然変異
+        offspring = algorithms.varAnd(offspring, toolbox, CROSSOVER_RATE, MUTATION_RATE)
 
-        # 突然変異
-        for mutant in offspring:
-            if np.random.rand() < MUTATION_RATE:
-                toolbox.mutate(mutant)
-                del mutant.fitness.values
-
-
-        # 交叉や突然変異で適応度がリセットされた個体を抽出
+        # 適応度がリセットされた個体の適応度を再計算
         invalid_ind = [ind for ind in offspring if not ind.fitness.valid]
-        # 適応度を再計算
         fitnesses = map(toolbox.evaluate, invalid_ind)
         for ind, fit in zip(invalid_ind, fitnesses):
             ind.fitness.values = fit
