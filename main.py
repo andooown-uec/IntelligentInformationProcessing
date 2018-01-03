@@ -117,8 +117,8 @@ if __name__ == '__main__':
     toolbox.register("individual", tools.initIterate, creator.Individual, toolbox.create_individual)
     toolbox.register("population", tools.initRepeat, list, toolbox.individual)
     toolbox.register("evaluate", evaluate_individual, distances=distances)
-    toolbox.register("mate", crossover.cycle_crossover)
-    toolbox.register("mutate", mutation.inversion_mutation)
+    toolbox.register("mate", crossover.get_function_by_shortname(args.crossover))
+    toolbox.register("mutate", mutation.get_function_by_shortname(args.mutation))
     toolbox.register("select", tools.selTournament, tournsize=3)
 
     # 世代を生成
