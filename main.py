@@ -20,10 +20,8 @@ def load_positions(filename):
         for city in data['cities']:
             pos.append([city['x'], city['y']])
         pos = np.asarray(pos)
-        # 座標の範囲を取得
-        pos_min, pos_max = data['params']['min'], data['params']['max']
 
-    return pos, pos_min, pos_max
+    return pos
 
 
 def create_random_positions(count, pos_min, pos_max):
@@ -100,11 +98,10 @@ if __name__ == '__main__':
 
     if args.data:
         # ファイルから巡回する地点の情報を取得
-        positions, position_min, position_max = load_positions(args.data)
+        positions = load_positions(args.data)
     else:
         # ランダムな地点を作成
-        position_min, position_max = -1000, 1000
-        positions = create_random_positions(POSITIONS_COUNT, position_min, position_max)
+        positions = create_random_positions(POSITIONS_COUNT, -1000, 1000)
     # 地点間の距離を計算
     distances = calc_distances(positions)
 
@@ -144,7 +141,7 @@ if __name__ == '__main__':
         views.append(CSVOutputView(stats))
     # グラフ表示用の View オブジェクトを作成する
     if not args.no_display:
-        views.append(GraphView(positions, position_min, position_max, GENERATION_COUNT, hof))
+        views.append(GraphView(positions, GENERATION_COUNT, hof))
 
     # 学習
     for g in range(1, GENERATION_COUNT + 1):
