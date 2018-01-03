@@ -3,18 +3,13 @@
 import numpy as np
 import random
 from deap import algorithms, base, creator, tools
-import matplotlib.pyplot as plt
 import argparse
 import json
 import crossover, mutation
+from views import GraphView, VerboseView, CSVOutputView
 
 positions = None    # 巡回する地点の座標
-position_min, position_max = 0, 0   # 巡回する地点の座標の最小値と最大値
 distances = None    # 地点間の距離
-hof = None              # 殿堂入り個体を保存するオブジェクト
-order_plot = None       # 巡回ルート表示用のオブジェクト
-distance_plot = None    # 距離表示用のオブジェクト
-distance_history = []   # 距離の履歴
 
 
 def evaluate_individual(ind):
@@ -29,33 +24,6 @@ def evaluate_individual(ind):
 def create_individual(length):
     """遺伝子を生成する関数"""
     return list(np.random.permutation(length))
-
-
-def print_info_line(gen, min, max, ave, std, is_csv=False):
-    """世代の情報を 1 行で表示する関数"""
-    if is_csv:
-        print(gen, min, max, ave, std, sep=',')
-    else:
-        print(
-            str(gen).ljust(5),
-            '{:.4f}'.format(min).rjust(12),
-            '{:.4f}'.format(max).rjust(12),
-            '{:.4f}'.format(ave).rjust(12),
-            '{:.4f}'.format(std).rjust(12))
-
-
-def update_figure(order_plot, distance_plot):
-    """グラフを更新する関数"""
-    # 経路を更新
-    pos = positions[hof.items[0] + [hof.items[0][0]]]
-    order_plot.set_xdata(pos[:, 0])
-    order_plot.set_ydata(pos[:, 1])
-    # 距離を更新
-    distance_plot.set_xdata(range(len(distance_history)))
-    distance_plot.set_ydata(distance_history)
-    # 表示を更新
-    plt.draw()
-    plt.pause(0.01)
 
 
 if __name__ == '__main__':
@@ -122,7 +90,7 @@ if __name__ == '__main__':
     toolbox.register("evaluate", evaluate_individual)
     toolbox.register("mate", crossover.cycle_crossover)
     toolbox.register("mutate", mutation.inversion_mutation)
-    toolbox.register("select", select_individuals, elite_rate=ELITE_RATE)
+    toolbox.register("select", tools.selTournament, tournsize=3)
 
     # 世代を生成
     pop = toolbox.population(n=INDIVIDUAL_COUNT)
@@ -135,43 +103,19 @@ if __name__ == '__main__':
     hof = tools.HallOfFame(1)
     hof.update(pop)
 
-    # 情報を表示
+    # コンソール出力用の View オブジェクトを作成する
+    views = []
     if args.verbose:
-        print('Positions: {}'.format(len(positions)))
-        print('Generations: {}'.format(GENERATION_COUNT))
-        print('Individual: {} / generation'.format(INDIVIDUAL_COUNT))
-        print('Crossover rate: {}'.format(CROSSOVER_RATE))
-        print('Mutation rate: {}'.format(MUTATION_RATE), end='\n\n')
-        print()
-        print('{0:<5} {1:<12} {2:<12} {3:<12} {4:<12}'.format('Gen', 'Min', 'Max', 'Ave', 'Std'))
-        print('=' * 58)
+        # 進捗出力
+        stats = {'gen': 0, 'min': 0, 'max': 0, 'ave': 0, 'std': 0}
+        views.append(VerboseView(POSITIONS_COUNT, GENERATION_COUNT, INDIVIDUAL_COUNT, CROSSOVER_RATE, MUTATION_RATE, stats, hof))
     elif args.csv:
-        print('Gen', 'Min', 'Max', 'Ave', 'Std', sep=',')
-
-    # グラフの設定
+        # CSV 出力
+        stats = {'gen': 0, 'min': 0, 'max': 0, 'ave': 0, 'std': 0}
+        views.append(CSVOutputView(stats))
+    # グラフ表示用の View オブジェクトを作成する
     if not args.no_display:
-        # インタラクティブモードを有効化
-        plt.ion()
-        # グラフを作成
-        fig = plt.figure(figsize=(3, 5))
-        ax1 = fig.add_subplot(2, 1, 1)
-        ax2 = fig.add_subplot(2, 1, 2)
-        # 経路用のグラフを作成
-        order_plot, = ax1.plot(positions[:, 0], positions[:, 1], color='blue', linewidth=3, zorder=1)
-        # 各地点をプロット
-        ax1.scatter(positions[:, 0], positions[:, 1], color='cyan', zorder=2)
-        # グラフの範囲を指定
-        rng = position_max - position_min
-        rng_min, rng_max = position_min - rng * 0.1, position_max + rng * 0.1
-        ax1.set_xlim(rng_min, rng_max)
-        ax1.set_ylim(rng_min, rng_max)
-        # 進捗表示用のグラフを作成
-        distance_plot, = ax2.plot([0], [hof.items[0].fitness.values[0]], color='blue')
-        # グラフの範囲を指定
-        ax2.set_xlim(0, GENERATION_COUNT)
-        ax2.set_ylim(0, hof.items[0].fitness.values[0] * 1.2)
-        # グラフを更新
-        update_figure(order_plot, distance_plot)
+        views.append(GraphView(positions, position_min, position_max, GENERATION_COUNT, hof))
 
     # 学習
     for g in range(1, GENERATION_COUNT + 1):
@@ -186,32 +130,26 @@ if __name__ == '__main__':
         fitnesses = map(toolbox.evaluate, invalid_ind)
         for ind, fit in zip(invalid_ind, fitnesses):
             ind.fitness.values = fit
-
         # 殿堂入り個体を更新
         hof.update(offspring)
-        # 距離の履歴を更新
-        distance_history.append(hof.items[0].fitness.values[0])
 
         # 世代を更新
         pop[:] = offspring
 
-        # 情報を表示
-        if args.verbose or args.csv:
+        # 情報を集計
+        if 'stats' in locals():
             # 適応度を取得
             fits = [ind.fitness.values[0] for ind in pop]
             # 集計
-            length = len(pop)
-            mean = sum(fits) / length
-            sum2 = sum([x * x for x in fits])
-            std = abs(sum2 / length - mean ** 2) ** 0.5
-            # 情報を表示
-            print_info_line(g, hof.items[0].fitness.values[0], max(fits), mean, std, args.csv)
-        # グラフを更新
-        if not args.no_display:
-            update_figure(order_plot, distance_plot)
+            stats['gen'] = g
+            stats['min'] = min(fits)
+            stats['max'] = max(fits)
+            stats['ave'] = sum(fits) / INDIVIDUAL_COUNT
+            stats['std'] = abs(sum([x * x for x in fits]) / INDIVIDUAL_COUNT - stats['ave'] ** 2) ** 0.5
+        # 表示を更新
+        for v in views:
+            v.update()
 
     # 結果を表示
-    if args.verbose:
-        print()
-        print("Best order:\n  {}".format(hof.items[0]))
-        print("Moving distance: {:.4f}".format(hof.items[0].fitness.values[0]))
+    for v in views:
+        v.finalize()
