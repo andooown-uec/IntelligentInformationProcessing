@@ -3,6 +3,17 @@
 import numpy as np
 
 
+def get_function_by_shortname(name):
+    """省略名から該当する関数オブジェクトを取得する関数"""
+    mutations = {
+        'ins': insert_mutation,
+        'swp': swap_mutation,
+        'inv': inversion_mutation
+    }
+
+    return mutations[name]
+
+
 def insert_mutation(individual):
     """
     挿入
