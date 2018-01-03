@@ -8,11 +8,46 @@ import json
 import crossover, mutation
 from views import GraphView, VerboseView, CSVOutputView
 
-positions = None    # 巡回する地点の座標
-distances = None    # 地点間の距離
+
+def load_positions(filename):
+    """ファイルから巡回する地点の情報を取得する関数"""
+    # ファイルを開く
+    with open(filename, 'r') as f:
+        # ファイルから座標を読み込む
+        data = json.load(f)
+        # 配列に格納
+        pos = []
+        for city in data['cities']:
+            pos.append([city['x'], city['y']])
+        pos = np.asarray(pos)
+        # 座標の範囲を取得
+        pos_min, pos_max = data['params']['min'], data['params']['max']
+
+    return pos, pos_min, pos_max
 
 
-def evaluate_individual(ind):
+def create_random_positions(count):
+    """ランダムな地点を作成する関数"""
+    # 巡回する地点の座標を作成
+    pos_min, pos_max = -1000, 1000
+    pos = np.random.randint(pos_min, pos_max + 1, size=(count, 2))
+
+    return pos, pos_min, pos_max
+
+
+def calc_distances(pos):
+    """地点の座標から距離マップを計算する関数"""
+    # 座標軸ごとの各点の距離を計算
+    xs, ys = [pos[:, i] for i in [0, 1]]
+    dx = xs - xs.reshape((len(pos), 1))
+    dy = ys - ys.reshape((len(pos), 1))
+    # 各点ごとの距離を計算
+    dist = np.sqrt(dx ** 2 + dy ** 2)
+
+    return dist
+
+
+def evaluate_individual(ind, distances):
     """遺伝子の評価関数。移動距離の合計を返す"""
     total = distances[ind[0], ind[-1]]
     for i, j in zip(ind[:-1], ind[1:]):
@@ -58,26 +93,13 @@ if __name__ == '__main__':
         np.random.seed(args.seed)
 
     if args.data:
-        with open(args.data, 'r') as f:
-            # ファイルから座標を読み込む
-            data = json.load(f)
-            # 配列に格納
-            positions = []
-            for city in data['cities']:
-                positions.append([city['x'], city['y']])
-            positions = np.asarray(positions)
-            # 座標の範囲を取得
-            position_min, position_max = data['params']['min'], data['params']['max']
+        # ファイルから巡回する地点の情報を取得
+        positions, position_min, position_max = load_positions(args.data)
     else:
-        # 巡回する地点の座標を作成
-        position_min, position_max = -1000, 1000
-        positions = np.random.randint(position_min, position_max + 1, size=(POSITIONS_COUNT, 2))
-    # 座標軸ごとの各点の距離を計算
-    xs, ys = [positions[:, i] for i in [0, 1]]
-    dx = xs - xs.reshape((len(positions), 1))
-    dy = ys - ys.reshape((len(positions), 1))
-    # 各点ごとの距離を計算
-    distances = np.sqrt(dx ** 2 + dy ** 2)
+        # ランダムな地点を作成
+        positions, position_min, position_max = create_random_positions(POSITIONS_COUNT)
+    # 地点間の距離を計算
+    distances = calc_distances(positions)
 
     # creator の設定
     creator.create("FitnessMin", base.Fitness, weights=(-1.0,))
@@ -87,7 +109,7 @@ if __name__ == '__main__':
     toolbox.register("create_individual", create_individual, len(positions))
     toolbox.register("individual", tools.initIterate, creator.Individual, toolbox.create_individual)
     toolbox.register("population", tools.initRepeat, list, toolbox.individual)
-    toolbox.register("evaluate", evaluate_individual)
+    toolbox.register("evaluate", evaluate_individual, distances=distances)
     toolbox.register("mate", crossover.cycle_crossover)
     toolbox.register("mutate", mutation.inversion_mutation)
     toolbox.register("select", tools.selTournament, tournsize=3)
