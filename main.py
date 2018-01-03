@@ -26,13 +26,12 @@ def load_positions(filename):
     return pos, pos_min, pos_max
 
 
-def create_random_positions(count):
+def create_random_positions(count, pos_min, pos_max):
     """ランダムな地点を作成する関数"""
     # 巡回する地点の座標を作成
-    pos_min, pos_max = -1000, 1000
     pos = np.random.randint(pos_min, pos_max + 1, size=(count, 2))
 
-    return pos, pos_min, pos_max
+    return pos
 
 
 def calc_distances(pos):
@@ -97,7 +96,8 @@ if __name__ == '__main__':
         positions, position_min, position_max = load_positions(args.data)
     else:
         # ランダムな地点を作成
-        positions, position_min, position_max = create_random_positions(POSITIONS_COUNT)
+        position_min, position_max = -1000, 1000
+        positions = create_random_positions(POSITIONS_COUNT, position_min, position_max)
     # 地点間の距離を計算
     distances = calc_distances(positions)
 
