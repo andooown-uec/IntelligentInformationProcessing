@@ -196,7 +196,7 @@ if __name__ == '__main__':
         plt.pause(0.01)
 
     # 学習
-    for g in range(GENERATION_COUNT):
+    for g in range(1, GENERATION_COUNT + 1):
         # 個体を選択し、そのクローンを作成
         offspring = toolbox.select(pop, INDIVIDUAL_COUNT)
         offspring = list(map(toolbox.clone, offspring))
