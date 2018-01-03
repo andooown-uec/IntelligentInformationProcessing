@@ -12,8 +12,7 @@ positions = None    # 巡回する地点の座標
 position_min, position_max = 0, 0   # 巡回する地点の座標の最小値と最大値
 distances = None    # 地点間の距離
 converter = None    # 遺伝子と巡回する順番のコンバータ
-current_distance = 0        # 現在の移動距離
-current_individual = None   # 現在の遺伝子
+current_individual = None   # 現在の最良個体
 order_plot = None       # 巡回ルート表示用のオブジェクト
 distance_plot = None    # 距離表示用のオブジェクト
 distance_history = []   # 距離の履歴
@@ -152,7 +151,6 @@ if __name__ == '__main__':
         ind.fitness.values = fit
     # 現在の距離と最良の遺伝子を更新
     current_individual = tools.selBest(pop, 1)[0]
-    current_distance = evaluate_individual(current_individual)[0]
 
     # 情報を表示
     if args.verbose:
@@ -185,10 +183,10 @@ if __name__ == '__main__':
         ax1.set_xlim(rng_min, rng_max)
         ax1.set_ylim(rng_min, rng_max)
         # 進捗表示用のグラフを作成
-        distance_plot, = ax2.plot([0], [current_distance], color='blue')
+        distance_plot, = ax2.plot([0], [current_individual.fitness.values[0]], color='blue')
         # グラフの範囲を指定
         ax2.set_xlim(0, GENERATION_COUNT)
-        ax2.set_ylim(0, current_distance * 1.2)
+        ax2.set_ylim(0, current_individual.fitness.values[0] * 1.2)
         update_figure(order_plot, distance_plot)
         plt.draw()
         plt.pause(0.01)
@@ -232,11 +230,10 @@ if __name__ == '__main__':
         # 適応度を取得
         fits = [ind.fitness.values[0] for ind in pop]
 
-        # 現在の距離と最良の遺伝子を更新
-        current_distance = min(fits)
+        # 現在の最良の遺伝子を更新
         current_individual = tools.selBest(pop, 1)[0]
         # 距離の履歴を更新
-        distance_history.append(current_distance)
+        distance_history.append(current_individual.fitness.values[0])
 
         # 情報を表示
         if args.verbose or args.csv:
@@ -244,7 +241,7 @@ if __name__ == '__main__':
             mean = sum(fits) / length
             sum2 = sum([x * x for x in fits])
             std = abs(sum2 / length - mean ** 2) ** 0.5
-            print_info_line(g, current_distance, max(fits), mean, std, args.csv)
+            print_info_line(g, current_individual.fitness.values[0], max(fits), mean, std, args.csv)
         # グラフを更新
         if not args.no_display:
             update_figure(order_plot, distance_plot)
