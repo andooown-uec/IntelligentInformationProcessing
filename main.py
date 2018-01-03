@@ -131,8 +131,8 @@ if __name__ == '__main__':
     distances = np.sqrt(dx ** 2 + dy ** 2)
 
     # creator の設定
-    creator.create("FitnessMax", base.Fitness, weights=(-1.0,))
-    creator.create("Individual", list, fitness=creator.FitnessMax)
+    creator.create("FitnessMin", base.Fitness, weights=(-1.0,))
+    creator.create("Individual", list, fitness=creator.FitnessMin)
     # toolbox の設定
     toolbox = base.Toolbox()
     toolbox.register("create_individual", create_individual, len(positions))
