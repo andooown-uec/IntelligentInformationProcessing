@@ -6,3 +6,6 @@ venv/
 
 # Python
 *.pyc
+
+# TSP Lib
+data/tsplib/
