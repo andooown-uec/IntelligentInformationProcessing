@@ -227,8 +227,6 @@ if __name__ == '__main__':
 
         # 世代を更新
         pop[:] = offspring
-        # 適応度を取得
-        fits = [ind.fitness.values[0] for ind in pop]
 
         # 現在の最良の遺伝子を更新
         current_individual = tools.selBest(pop, 1)[0]
@@ -237,10 +235,14 @@ if __name__ == '__main__':
 
         # 情報を表示
         if args.verbose or args.csv:
+            # 適応度を取得
+            fits = [ind.fitness.values[0] for ind in pop]
+            # 集計
             length = len(pop)
             mean = sum(fits) / length
             sum2 = sum([x * x for x in fits])
             std = abs(sum2 / length - mean ** 2) ** 0.5
+            # 情報を表示
             print_info_line(g, current_individual.fitness.values[0], max(fits), mean, std, args.csv)
         # グラフを更新
         if not args.no_display:
