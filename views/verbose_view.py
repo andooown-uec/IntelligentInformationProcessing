@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from .abstract_view import AbstractView
+from .views_util import sort_order_by_zeroindex
 
 
 class VerboseView(AbstractView):
@@ -9,7 +10,7 @@ class VerboseView(AbstractView):
     """
 
 
-    def __init__(self, positions_count, generation_count, individual_count, crossover_rate, mutation_rate, statistics, hof):
+    def __init__(self, positions_count, generation_count, individual_count, crossover_rate, mutation_rate, statistics, hof, opt_dist=None, opt_order=None):
         """
         コンストラクタ
         :param positions_count: 巡回する地点の数
@@ -22,6 +23,8 @@ class VerboseView(AbstractView):
         """
         self._stats = statistics    # 統計情報
         self._hof = hof     # 殿堂入り個体を保存するオブジェクト
+        self._opt_distance = opt_dist   # 最適な距離
+        self._opt_order = opt_order     # 最適な巡回順
         # 情報を表示
         print('Positions: {}'.format(positions_count))
         print('Generations: {}'.format(generation_count))
@@ -45,5 +48,13 @@ class VerboseView(AbstractView):
 
     def finalize(self):
         """最終結果を出力する関数"""
-        print("\nBest order:\n  {}".format(self._hof.items[0]))
-        print("Moving distance: {:.4f}".format(self._hof.items[0].fitness.values[0]))
+        # 結果を表示
+        if self._opt_distance and self._opt_order:
+            error_rate = (self._hof.items[0].fitness.values[0] - self._opt_distance) / self._opt_distance   # 誤差率
+            print("\nBest order:\n  {}".format(sort_order_by_zeroindex(self._hof.items[0])))
+            print("Optical order:\n  {}".format(sort_order_by_zeroindex(self._opt_order)))
+            print("Moving distance: {0:.4f} (Error: {1:.2%})".format(self._hof.items[0].fitness.values[0], error_rate))
+            print("Optical distance: {:.4f}".format(self._opt_distance))
+        else:
+            print("\nBest order:\n  {}".format(sort_order_by_zeroindex(self._hof.items[0])))
+            print("Moving distance: {:.4f}".format(self._hof.items[0].fitness.values[0]))

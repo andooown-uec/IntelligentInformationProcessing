@@ -126,7 +126,10 @@ if __name__ == '__main__':
     if args.verbose:
         # 進捗出力
         stats = {}
-        views.append(VerboseView(POSITIONS_COUNT, GENERATION_COUNT, INDIVIDUAL_COUNT, CROSSOVER_RATE, MUTATION_RATE, stats, hof))
+        if args.data:
+            views.append(VerboseView(POSITIONS_COUNT, GENERATION_COUNT, INDIVIDUAL_COUNT, CROSSOVER_RATE, MUTATION_RATE, stats, hof, opt_dist=optical_distance, opt_order=optical_order))
+        else:
+            views.append(VerboseView(POSITIONS_COUNT, GENERATION_COUNT, INDIVIDUAL_COUNT, CROSSOVER_RATE, MUTATION_RATE, stats, hof))
     elif args.csv:
         # CSV 出力
         stats = {}
