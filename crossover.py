@@ -4,6 +4,18 @@ import numpy as np
 import itertools
 
 
+def get_function_by_shortname(name):
+    """省略名から該当する関数オブジェクトを取得する関数"""
+    crossovers = {
+        'cx': cycle_crossover,
+        'ox': ordered_crossover,
+        'pmx': partially_mapped_crossover,
+        'erx': edge_recombination_crossover
+    }
+
+    return crossovers[name]
+
+
 def cycle_crossover(ind1, ind2):
     """循環交叉"""
     size = len(ind1)    # 個体の大きさ
