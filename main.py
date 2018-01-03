@@ -18,8 +18,8 @@ def load_positions(filename):
         # 情報を取得
         pos = np.asarray(data['positions'], dtype=np.float64)   # 地点の座標
         dist = np.asarray(data['distances'], dtype=np.float64)  # 地点間の距離
-        opt_dist = data['optical_distance']     # 最適な距離
-        opt_order = data['optical_order']       # 最適な巡回順
+        opt_dist = data['optimal_distance']     # 最適な距離
+        opt_order = data['optimal_order']       # 最適な巡回順
 
     return pos, dist, opt_dist, opt_order
 
@@ -92,7 +92,7 @@ if __name__ == '__main__':
 
     if args.data:
         # ファイルから巡回する地点の情報を取得
-        positions, distances, optical_distance, optical_order = load_positions(args.data)
+        positions, distances, optimal_distance, optimal_order = load_positions(args.data)
     else:
         # ランダムな地点を作成
         positions, distances = create_random_positions(POSITIONS_COUNT, -1000, 1000)
@@ -127,7 +127,7 @@ if __name__ == '__main__':
         # 進捗出力
         stats = {}
         if args.data:
-            views.append(VerboseView(POSITIONS_COUNT, GENERATION_COUNT, INDIVIDUAL_COUNT, CROSSOVER_RATE, MUTATION_RATE, stats, hof, opt_dist=optical_distance, opt_order=optical_order))
+            views.append(VerboseView(POSITIONS_COUNT, GENERATION_COUNT, INDIVIDUAL_COUNT, CROSSOVER_RATE, MUTATION_RATE, stats, hof, opt_dist=optimal_distance, opt_order=optimal_order))
         else:
             views.append(VerboseView(POSITIONS_COUNT, GENERATION_COUNT, INDIVIDUAL_COUNT, CROSSOVER_RATE, MUTATION_RATE, stats, hof))
     elif args.csv:
