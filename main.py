@@ -11,7 +11,6 @@ import crossover, mutation
 positions = None    # 巡回する地点の座標
 position_min, position_max = 0, 0   # 巡回する地点の座標の最小値と最大値
 distances = None    # 地点間の距離
-converter = None    # 遺伝子と巡回する順番のコンバータ
 hof = None              # 殿堂入り個体を保存するオブジェクト
 order_plot = None       # 巡回ルート表示用のオブジェクト
 distance_plot = None    # 距離表示用のオブジェクト
