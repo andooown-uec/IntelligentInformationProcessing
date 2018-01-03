@@ -62,13 +62,22 @@ def create_individual(length):
 
 if __name__ == '__main__':
     # argparser
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter)
     # 位置引数の設定
     parser.add_argument('pos_cnt',   help='Nuber of positions',                  type=int)
     parser.add_argument('gen_cnt',   help='Number of generations',               type=int)
     parser.add_argument('pop_cnt',   help='Number of genes in each generations', type=int)
-    parser.add_argument('crossover', help='Rate of crossover (0 ~ 1)',           type=float)
-    parser.add_argument('mutation',  help='Rate of individual mutation (0 ~ 1)', type=float)
+    parser.add_argument('crossover', help='Method for crossover\n' \
+                                        + '    cx: 循環交叉\n' \
+                                        + '    ox: 順序交叉\n' \
+                                        + '    pmx: 部分写像交叉\n' \
+                                        + '    erx: 辺組替え交叉', choices=['cx', 'ox', 'pmx', 'erx'], type=str)
+    parser.add_argument('crossover_rate', help='Rate of crossover (0 ~ 1)',           type=float)
+    parser.add_argument('mutation',  help='Method for mutation\n' \
+                                        + '    ins: 挿入\n' \
+                                        + '    swp: 交換\n' \
+                                        + '    inv: 逆位', choices=['ins', 'swp', 'inv'], type=str)
+    parser.add_argument('mutation_rate',  help='Rate of individual mutation (0 ~ 1)', type=float)
     # オプショナル引数を設定
     parser.add_argument('--seed',       help='Seed value',        type=int)
     parser.add_argument('--verbose',    help='Verbose',           action='store_true')
@@ -81,8 +90,8 @@ if __name__ == '__main__':
     POSITIONS_COUNT = args.pos_cnt  # 巡回する地点の数
     GENERATION_COUNT = args.gen_cnt # 計算する世代の数
     INDIVIDUAL_COUNT = args.pop_cnt # 一世代あたりの遺伝子の数
-    CROSSOVER_RATE = args.crossover # 交叉率
-    MUTATION_RATE = args.mutation   # 突然変異率
+    CROSSOVER_RATE = args.crossover_rate    # 交叉率
+    MUTATION_RATE = args.mutation_rate      # 突然変異率
 
     # 乱数のシード値を設定
     if args.seed:
