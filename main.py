@@ -2,7 +2,7 @@
 
 import numpy as np
 import random
-from deap import base, creator, tools
+from deap import algorithms, base, creator, tools
 import matplotlib.pyplot as plt
 import argparse
 import json
@@ -12,8 +12,7 @@ positions = None    # 巡回する地点の座標
 position_min, position_max = 0, 0   # 巡回する地点の座標の最小値と最大値
 distances = None    # 地点間の距離
 converter = None    # 遺伝子と巡回する順番のコンバータ
-current_distance = 0        # 現在の移動距離
-current_individual = None   # 現在の遺伝子
+hof = None              # 殿堂入り個体を保存するオブジェクト
 order_plot = None       # 巡回ルート表示用のオブジェクト
 distance_plot = None    # 距離表示用のオブジェクト
 distance_history = []   # 距離の履歴
@@ -69,7 +68,7 @@ def print_info_line(gen, min, max, ave, std, is_csv=False):
 def update_figure(order_plot, distance_plot):
     """グラフを更新する関数"""
     # 経路を更新
-    pos = positions[current_individual + [current_individual[0]]]
+    pos = positions[hof.items[0] + [hof.items[0][0]]]
     order_plot.set_xdata(pos[:, 0])
     order_plot.set_ydata(pos[:, 1])
     # 距離を更新
@@ -150,9 +149,9 @@ if __name__ == '__main__':
     fitnesses = list(map(toolbox.evaluate, pop))
     for ind, fit in zip(pop, fitnesses):
         ind.fitness.values = fit
-    # 現在の距離と最良の遺伝子を更新
-    current_individual = tools.selBest(pop, 1)[0]
-    current_distance = evaluate_individual(current_individual)[0]
+    # 殿堂入り個体を保存するオブジェクトを作成し、更新する
+    hof = tools.HallOfFame(1)
+    hof.update(pop)
 
     # 情報を表示
     if args.verbose:
@@ -185,66 +184,47 @@ if __name__ == '__main__':
         ax1.set_xlim(rng_min, rng_max)
         ax1.set_ylim(rng_min, rng_max)
         # 進捗表示用のグラフを作成
-        distance_plot, = ax2.plot([0], [current_distance], color='blue')
+        distance_plot, = ax2.plot([0], [hof.items[0].fitness.values[0]], color='blue')
         # グラフの範囲を指定
         ax2.set_xlim(0, GENERATION_COUNT)
-        ax2.set_ylim(0, current_distance * 1.2)
+        ax2.set_ylim(0, hof.items[0].fitness.values[0] * 1.2)
         update_figure(order_plot, distance_plot)
         plt.draw()
         plt.pause(0.01)
 
     # 学習
-    for g in range(GENERATION_COUNT):
-        # 個体を選択し、そのクローンを作成
-        offspring = toolbox.select(pop, INDIVIDUAL_COUNT)
-        offspring = list(map(toolbox.clone, offspring))
+    for g in range(1, GENERATION_COUNT + 1):
+        # 個体を選択
+        offspring = toolbox.select(pop, len(pop))
 
-        # シャッフルする
-        random.shuffle(offspring)
-        # 交叉
-        crossover_size = int(len(pop) * CROSSOVER_RATE)  # 交叉する個体数
-        for parent1, parent2 in zip(offspring[:crossover_size:2], offspring[1:crossover_size:2]):
-            # 交叉により新しい個体を生成し、その個体の適合度をリセットする
-            child1, child2 = toolbox.clone(parent1), toolbox.clone(parent2)
-            toolbox.mate(child1, child2)
-            del child1.fitness.values
-            del child2.fitness.values
-            # 世代に新しい個体を追加
-            offspring.append(child1)
-            offspring.append(child2)
+        # 交叉と突然変異
+        offspring = algorithms.varAnd(offspring, toolbox, CROSSOVER_RATE, MUTATION_RATE)
 
-        # 突然変異
-        for mutant in offspring:
-            if np.random.rand() < MUTATION_RATE:
-                toolbox.mutate(mutant)
-                del mutant.fitness.values
-
-
-        # 交叉や突然変異で適応度がリセットされた個体を抽出
+        # 適応度がリセットされた個体の適応度を再計算
         invalid_ind = [ind for ind in offspring if not ind.fitness.valid]
-        # 適応度を再計算
         fitnesses = map(toolbox.evaluate, invalid_ind)
         for ind, fit in zip(invalid_ind, fitnesses):
             ind.fitness.values = fit
 
+        # 殿堂入り個体を更新
+        hof.update(offspring)
+        # 距離の履歴を更新
+        distance_history.append(hof.items[0].fitness.values[0])
+
         # 世代を更新
         pop[:] = offspring
-        # 適応度を取得
-        fits = [ind.fitness.values[0] for ind in pop]
-
-        # 現在の距離と最良の遺伝子を更新
-        current_distance = min(fits)
-        current_individual = tools.selBest(pop, 1)[0]
-        # 距離の履歴を更新
-        distance_history.append(current_distance)
 
         # 情報を表示
         if args.verbose or args.csv:
+            # 適応度を取得
+            fits = [ind.fitness.values[0] for ind in pop]
+            # 集計
             length = len(pop)
             mean = sum(fits) / length
             sum2 = sum([x * x for x in fits])
             std = abs(sum2 / length - mean ** 2) ** 0.5
-            print_info_line(g, current_distance, max(fits), mean, std, args.csv)
+            # 情報を表示
+            print_info_line(g, hof.items[0].fitness.values[0], max(fits), mean, std, args.csv)
         # グラフを更新
         if not args.no_display:
             update_figure(order_plot, distance_plot)
@@ -254,5 +234,5 @@ if __name__ == '__main__':
     # 結果を表示
     if args.verbose:
         print()
-        print("Best order:\n  {}".format(current_individual))
-        print("Moving distance: {:.4f}".format(current_individual.fitness.values[0]))
+        print("Best order:\n  {}".format(hof.items[0]))
+        print("Moving distance: {:.4f}".format(hof.items[0].fitness.values[0]))
