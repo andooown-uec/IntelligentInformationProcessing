@@ -12,7 +12,6 @@ positions = None    # 巡回する地点の座標
 position_min, position_max = 0, 0   # 巡回する地点の座標の最小値と最大値
 distances = None    # 地点間の距離
 converter = None    # 遺伝子と巡回する順番のコンバータ
-current_individual = None   # 現在の最良個体
 hof = None              # 殿堂入り個体を保存するオブジェクト
 order_plot = None       # 巡回ルート表示用のオブジェクト
 distance_plot = None    # 距離表示用のオブジェクト
@@ -69,7 +68,7 @@ def print_info_line(gen, min, max, ave, std, is_csv=False):
 def update_figure(order_plot, distance_plot):
     """グラフを更新する関数"""
     # 経路を更新
-    pos = positions[current_individual + [current_individual[0]]]
+    pos = positions[hof.items[0] + [hof.items[0][0]]]
     order_plot.set_xdata(pos[:, 0])
     order_plot.set_ydata(pos[:, 1])
     # 距離を更新
@@ -150,8 +149,6 @@ if __name__ == '__main__':
     fitnesses = list(map(toolbox.evaluate, pop))
     for ind, fit in zip(pop, fitnesses):
         ind.fitness.values = fit
-    # 現在の最良の遺伝子を更新
-    current_individual = tools.selBest(pop, 1)[0]
     # 殿堂入り個体を保存するオブジェクトを作成し、更新する
     hof = tools.HallOfFame(1)
     hof.update(pop)
@@ -187,10 +184,10 @@ if __name__ == '__main__':
         ax1.set_xlim(rng_min, rng_max)
         ax1.set_ylim(rng_min, rng_max)
         # 進捗表示用のグラフを作成
-        distance_plot, = ax2.plot([0], [current_individual.fitness.values[0]], color='blue')
+        distance_plot, = ax2.plot([0], [hof.items[0].fitness.values[0]], color='blue')
         # グラフの範囲を指定
         ax2.set_xlim(0, GENERATION_COUNT)
-        ax2.set_ylim(0, current_individual.fitness.values[0] * 1.2)
+        ax2.set_ylim(0, hof.items[0].fitness.values[0] * 1.2)
         update_figure(order_plot, distance_plot)
         plt.draw()
         plt.pause(0.01)
@@ -209,15 +206,13 @@ if __name__ == '__main__':
         for ind, fit in zip(invalid_ind, fitnesses):
             ind.fitness.values = fit
 
+        # 殿堂入り個体を更新
+        hof.update(offspring)
+        # 距離の履歴を更新
+        distance_history.append(hof.items[0].fitness.values[0])
+
         # 世代を更新
         pop[:] = offspring
-
-        # 現在の最良の遺伝子を更新
-        current_individual = tools.selBest(pop, 1)[0]
-        # 殿堂入り個体を更新
-        hof.update(pop)
-        # 距離の履歴を更新
-        distance_history.append(current_individual.fitness.values[0])
 
         # 情報を表示
         if args.verbose or args.csv:
@@ -229,7 +224,7 @@ if __name__ == '__main__':
             sum2 = sum([x * x for x in fits])
             std = abs(sum2 / length - mean ** 2) ** 0.5
             # 情報を表示
-            print_info_line(g, current_individual.fitness.values[0], max(fits), mean, std, args.csv)
+            print_info_line(g, hof.items[0].fitness.values[0], max(fits), mean, std, args.csv)
         # グラフを更新
         if not args.no_display:
             update_figure(order_plot, distance_plot)
