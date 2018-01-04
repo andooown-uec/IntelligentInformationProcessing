@@ -53,16 +53,22 @@ def create_individual(length):
     return list(np.random.permutation(length))
 
 
-def crossover_individuals(inds, toolbox):
+def crossover_individuals(inds):
     """並列処理用の交叉関数を呼び出すラッパー関数"""
-    toolbox.mate(inds[0], inds[1])
-    del inds[0].fitness.values, inds[1].fitness.values
+    if random.random() < CROSSOVER_RATE:
+        toolbox.mate(inds[0], inds[1])
+        del inds[0].fitness.values, inds[1].fitness.values
+
+    return inds
 
 
-def mutation_individual(ind, toolbox):
+def mutation_individual(ind):
     """並列処理用の突然変異関数を呼び出すラッパー関数"""
-    toolbox.mutate(ind)
-    del ind.fitness.values
+    if random.random() < MUTATION_RATE:
+        toolbox.mutate(ind)
+        del ind.fitness.values
+
+    return ind
 
 
 if __name__ == '__main__':
