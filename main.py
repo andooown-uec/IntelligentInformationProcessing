@@ -5,6 +5,7 @@ import random
 from deap import base, creator, tools
 import argparse
 import json
+import multiprocessing
 import crossover, mutation
 from views import GraphView, VerboseView, CSVOutputView
 
@@ -109,6 +110,9 @@ if __name__ == '__main__':
     toolbox.register("mate", crossover.get_function_by_shortname(args.crossover))
     toolbox.register("mutate", mutation.get_function_by_shortname(args.mutation))
     toolbox.register("select", tools.selTournament, tournsize=3)
+    # 並列処理の設定
+    pool = multiprocessing.Pool()
+    toolbox.register("map", pool.map)
 
     # 世代を生成
     pop = toolbox.population(n=INDIVIDUAL_COUNT)
