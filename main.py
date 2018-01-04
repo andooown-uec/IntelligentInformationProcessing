@@ -53,6 +53,18 @@ def create_individual(length):
     return list(np.random.permutation(length))
 
 
+def crossover_individuals(inds, toolbox):
+    """並列処理用の交叉関数を呼び出すラッパー関数"""
+    toolbox.mate(inds[0], inds[1])
+    del inds[0].fitness.values, inds[1].fitness.values
+
+
+def mutation_individual(ind, toolbox):
+    """並列処理用の突然変異関数を呼び出すラッパー関数"""
+    toolbox.mutate(ind)
+    del ind.fitness.values
+
+
 if __name__ == '__main__':
     # argparser
     parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter)
