@@ -2,9 +2,10 @@
 
 import numpy as np
 import random
-from deap import algorithms, base, creator, tools
+from deap import base, creator, tools
 import argparse
 import json
+import multiprocessing
 import crossover, mutation
 from views import GraphView, VerboseView, CSVOutputView
 
@@ -52,6 +53,24 @@ def create_individual(length):
     return list(np.random.permutation(length))
 
 
+def crossover_individuals(inds):
+    """並列処理用の交叉関数を呼び出すラッパー関数"""
+    if random.random() < CROSSOVER_RATE:
+        toolbox.mate(inds[0], inds[1])
+        del inds[0].fitness.values, inds[1].fitness.values
+
+    return inds
+
+
+def mutation_individual(ind):
+    """並列処理用の突然変異関数を呼び出すラッパー関数"""
+    if random.random() < MUTATION_RATE:
+        toolbox.mutate(ind)
+        del ind.fitness.values
+
+    return ind
+
+
 if __name__ == '__main__':
     # argparser
     parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter)
@@ -71,11 +90,12 @@ if __name__ == '__main__':
                                         + '    inv: 逆位', choices=['ins', 'swp', 'inv'], type=str)
     parser.add_argument('mutation_rate',  help='Rate of individual mutation (0 ~ 1)', type=float)
     # オプショナル引数を設定
-    parser.add_argument('--seed',       help='Seed value',        type=int)
-    parser.add_argument('--verbose',    help='Verbose',           action='store_true')
-    parser.add_argument('--csv',        help='Output csv',        action='store_true')
-    parser.add_argument('--no-display', help="Don't show graphs", action='store_true')
-    parser.add_argument('--data',       help='Cities data file',  action='store', nargs='?', const=None, default=None, type=str)
+    parser.add_argument('--seed',       help='Seed value',         type=int)
+    parser.add_argument('--verbose',    help='Verbose',            action='store_true')
+    parser.add_argument('--csv',        help='Output csv',         action='store_true')
+    parser.add_argument('--no-display', help="Don't show graphs",  action='store_true')
+    parser.add_argument('--multi',      help="Run on multithread", action='store_true')
+    parser.add_argument('--data',       help='Cities data file',   action='store', nargs='?', const=None, default=None, type=str)
     # 引数をパース
     args = parser.parse_args()
     # 定数を設定
@@ -109,6 +129,10 @@ if __name__ == '__main__':
     toolbox.register("mate", crossover.get_function_by_shortname(args.crossover))
     toolbox.register("mutate", mutation.get_function_by_shortname(args.mutation))
     toolbox.register("select", tools.selTournament, tournsize=3)
+    # 並列処理の設定
+    if args.multi:
+        pool = multiprocessing.Pool()
+        toolbox.register("map", pool.map)
 
     # 世代を生成
     pop = toolbox.population(n=INDIVIDUAL_COUNT)
@@ -143,8 +167,12 @@ if __name__ == '__main__':
         # 個体を選択
         offspring = toolbox.select(pop, len(pop))
 
-        # 交叉と突然変異
-        offspring = algorithms.varAnd(offspring, toolbox, CROSSOVER_RATE, MUTATION_RATE)
+        # 個体をすべてコピー
+        offspring = list(toolbox.map(toolbox.clone, offspring))
+        # 交叉
+        offspring = [ind for inds in toolbox.map(crossover_individuals, zip(offspring[::2], offspring[1::2])) for ind in inds]
+        # 突然変異
+        offspring = list(toolbox.map(mutation_individual, offspring))
 
         # 適応度がリセットされた個体の適応度を再計算
         invalid_ind = [ind for ind in offspring if not ind.fitness.valid]
@@ -174,3 +202,7 @@ if __name__ == '__main__':
     # 結果を表示
     for v in views:
         v.finalize()
+
+    # 並列化を行ったときはプールを閉じる
+    if args.multi:
+        pool.close()
