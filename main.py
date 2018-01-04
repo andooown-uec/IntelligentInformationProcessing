@@ -168,15 +168,9 @@ if __name__ == '__main__':
         # 個体をすべてコピー
         offspring = list(toolbox.map(toolbox.clone, offspring))
         # 交叉
-        for ind1, ind2 in zip(offspring[::2], offspring[1::2]):
-            if random.random() < CROSSOVER_RATE:
-                toolbox.mate(ind1, ind2)
-                del ind1.fitness.values, ind2.fitness.values
+        offspring = [ind for inds in toolbox.map(crossover_individuals, zip(offspring[::2], offspring[1::2])) for ind in inds]
         # 突然変異
-        for ind in offspring:
-            if random.random() < MUTATION_RATE:
-                toolbox.mutate(ind)
-                del ind.fitness.values
+        offspring = toolbox.map(mutation_individual, offspring)
 
         # 適応度がリセットされた個体の適応度を再計算
         invalid_ind = [ind for ind in offspring if not ind.fitness.valid]
