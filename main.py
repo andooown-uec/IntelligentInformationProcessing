@@ -2,7 +2,7 @@
 
 import numpy as np
 import random
-from deap import algorithms, base, creator, tools
+from deap import base, creator, tools
 import argparse
 import json
 import crossover, mutation
@@ -143,8 +143,18 @@ if __name__ == '__main__':
         # 個体を選択
         offspring = toolbox.select(pop, len(pop))
 
-        # 交叉と突然変異
-        offspring = algorithms.varAnd(offspring, toolbox, CROSSOVER_RATE, MUTATION_RATE)
+        # 個体をすべてコピー
+        offspring = list(toolbox.map(toolbox.clone, offspring))
+        # 交叉
+        for ind1, ind2 in zip(offspring[::2], offspring[1::2]):
+            if random.random() < CROSSOVER_RATE:
+                toolbox.mate(ind1, ind2)
+                del ind1.fitness.values, ind2.fitness.values
+        # 突然変異
+        for ind in offspring:
+            if random.random() < MUTATION_RATE:
+                toolbox.mutate(ind)
+                del ind.fitness.values
 
         # 適応度がリセットされた個体の適応度を再計算
         invalid_ind = [ind for ind in offspring if not ind.fitness.valid]
