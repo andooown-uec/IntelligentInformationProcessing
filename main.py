@@ -92,10 +92,10 @@ if __name__ == '__main__':
     # オプショナル引数を設定
     parser.add_argument('--seed',       help='Seed value',         type=int)
     parser.add_argument('--verbose',    help='Verbose',            action='store_true')
-    parser.add_argument('--csv',        help='Output csv',         action='store_true')
     parser.add_argument('--no-display', help="Don't show graphs",  action='store_true')
     parser.add_argument('--multi',      help="Run on multithread", action='store_true')
     parser.add_argument('--data',       help='Cities data file',   action='store', nargs='?', const=None, default=None, type=str)
+    parser.add_argument('--csv',        help='Output csv',         action='store', nargs='?', const=None, default=None, type=str)
     # 引数をパース
     args = parser.parse_args()
     # 定数を設定
