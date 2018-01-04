@@ -200,3 +200,7 @@ if __name__ == '__main__':
     # 結果を表示
     for v in views:
         v.finalize()
+
+    # 並列化を行ったときはプールを閉じる
+    if pool in locals():
+        pool.close()
