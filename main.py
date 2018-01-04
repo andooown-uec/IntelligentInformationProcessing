@@ -157,7 +157,7 @@ if __name__ == '__main__':
     if args.csv:
         if 'stats' not in locals():
             stats = {}
-        views.append(CSVOutputView(args.csv, stats))
+        views.append(CSVOutputView(args.csv, stats, hof))
     # グラフ表示用の View オブジェクトを作成する
     if not args.no_display:
         views.append(GraphView(positions, GENERATION_COUNT, hof))
