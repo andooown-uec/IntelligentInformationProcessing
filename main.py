@@ -148,16 +148,16 @@ if __name__ == '__main__':
     # コンソール出力用の View オブジェクトを作成する
     views = []
     if args.verbose:
-        # 進捗出力
         stats = {}
         if args.data:
             views.append(VerboseView(POSITIONS_COUNT, GENERATION_COUNT, INDIVIDUAL_COUNT, CROSSOVER_RATE, MUTATION_RATE, stats, hof, opt_dist=optimal_distance, opt_order=optimal_order))
         else:
             views.append(VerboseView(POSITIONS_COUNT, GENERATION_COUNT, INDIVIDUAL_COUNT, CROSSOVER_RATE, MUTATION_RATE, stats, hof))
-    elif args.csv:
-        # CSV 出力
-        stats = {}
-        views.append(CSVOutputView(stats))
+    # CSV 出力用の View オブジェクトを作成する
+    if args.csv:
+        if 'stats' not in locals():
+            stats = {}
+        views.append(CSVOutputView(args.csv, stats))
     # グラフ表示用の View オブジェクトを作成する
     if not args.no_display:
         views.append(GraphView(positions, GENERATION_COUNT, hof))
