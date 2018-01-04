@@ -172,7 +172,7 @@ if __name__ == '__main__':
         # 交叉
         offspring = [ind for inds in toolbox.map(crossover_individuals, zip(offspring[::2], offspring[1::2])) for ind in inds]
         # 突然変異
-        offspring = toolbox.map(mutation_individual, offspring)
+        offspring = list(toolbox.map(mutation_individual, offspring))
 
         # 適応度がリセットされた個体の適応度を再計算
         invalid_ind = [ind for ind in offspring if not ind.fitness.valid]
